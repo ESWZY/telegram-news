@@ -115,7 +115,7 @@ def post(item, channel, news_id):
 
         # Commit changes to database
         db.commit()
-    return json.dumps(res.text)['ok']
+    return json.dumps(res.text)
     
 def isPosted(news_id):
     rows = db.execute("SELECT * FROM news WHERE news_id = :news_id",
