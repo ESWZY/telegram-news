@@ -89,7 +89,7 @@ def getFull(url):
         
     paragraphs = ""
     for p in paragraphSelect:        
-        paragraphs += findLink(p).strip('\u3000')strip('\n') + '\n\n'
+        paragraphs += findLink(p).strip('\u3000').strip('\n') + '\n\n'
     #print(paragraphs)
 
     return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs}
