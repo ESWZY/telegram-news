@@ -19,7 +19,7 @@ engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
 
 def getList():
-    res = requests.get(jsxwurl, headers = headers)
+    res = requests.get(jsxwURL, headers = headers)
     res.encoding='utf-8'
     #print(res.text)
     
