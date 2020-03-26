@@ -56,7 +56,7 @@ def getFull(url):
         source = ""
     
     # Get news title
-    titleSelect = soup.select('.h-title')
+    titleSelect = soup.select('.h-title, title')
     try:
         title = titleSelect[0].getText().strip()
     except IndexError:                              # Do not have this element because of missing/403/others
@@ -88,8 +88,10 @@ def getFull(url):
             return result + BeautifulSoup(cp, 'lxml').getText()
         
     paragraphs = ""
-    for p in paragraphSelect:        
-        paragraphs += findLink(p).strip('\u3000').strip('\n') + '\n\n'
+    for p in paragraphSelect:
+        linkStr = findLink(p).strip('\u3000').strip('\n').strip()
+        if linkStr != "": 
+            paragraphs += linkStr + '\n\n'
     #print(paragraphs)
 
     return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs}
