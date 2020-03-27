@@ -14,12 +14,13 @@ TOKEN = os.getenv("TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 channel = os.getenv("CHANNEL")
 jsxwURL = "http://www.xinhuanet.com/jsxw.htm"
+whxwURL = "http://www.news.cn/whxw.htm"
 
 engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
 
-def getList():
-    res = requests.get(jsxwURL, headers = headers)
+def getList(listURL):
+    res = requests.get(listURL, headers = headers)
     res.encoding='utf-8'
     #print(res.text)
     
@@ -128,8 +129,10 @@ def isPosted(news_id):
         return True
 
 def action():
-    nlist = getList()
+    nlist = getList(jsxwURL)
+    nlist += getList(whxwURL)
     nlist.reverse()
+    #print(nlist)
     for item in nlist:
         if not isPosted(item['ID']):
             message = getFull(item['link'])
