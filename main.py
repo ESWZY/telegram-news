@@ -15,6 +15,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 channel = os.getenv("CHANNEL")
 jsxwURL = "http://www.xinhuanet.com/jsxw.htm"
 whxwURL = "http://www.news.cn/whxw.htm"
+maxLen = 800        # The maximum length of one message.
+                    # Bad view if too long
+                    # Accounding to API doc, max is 4096
 
 engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
@@ -72,7 +75,7 @@ def getFull(url):
     #print(paragraphSelect)
 
     def findLink(p):
-        '''Remove tags except <a></a>'''
+        '''Remove tags except <a></a>. Otherwise, telegram api will not parse'''
         if p.select('a') == []:
             return p.getText()
         else:
@@ -95,22 +98,26 @@ def getFull(url):
             paragraphs += linkStr + '\n\n'
     #print(paragraphs)
 
-    return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs}
+    return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
 def post(item, channel, news_id):
     po = ""
-    po = '<b>' + item['title'] + '</b>'
+    po = '<b>' + item['title'] + '</b>'   # '%23' is '#'
     po += '\n\n'
-    po += item['paragraphs']
+    disable_web_page_preview = 'True'
+    if len(item['paragraphs']) > maxLen:
+        # Post the link only.
+        po += '<a href=\"' + item['link'] + '\">正文链接</a>\n\n'
+        # If there is exceed the limit, enable web page preview.
+        disable_web_page_preview = 'False'
+    else:
+        po += item['paragraphs']
     po += item['time']
     po += '\n'
     po += item['source']
 
-    if len(po) > 4050:
-        return 'Too long! Use Telegraph!'
-    
     # https://core.telegram.org/bots/api#sendmessage    
-    postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=html'
+    postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=html&disable_web_page_preview=' + disable_web_page_preview
     res = requests.get(postURL, proxies=proxies)
     if res.status_code == 200:
         db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
@@ -133,20 +140,24 @@ def action():
     nlist += getList(whxwURL)
     nlist.reverse()
     #print(nlist)
+
+    total = 0
+    posted = 0
     for item in nlist:
         if not isPosted(item['ID']):
             message = getFull(item['link'])
             res = post(message, channel, item['ID'])
-            print(item['ID'] + "Success!")
+            print(item['ID'] + " success!")
+            total +=1
         else:
-            print(item['ID'] + 'Posted!')
+            posted += 1
+            #print(item['ID'] + 'Posted!')
+    return total, posted
 
-def poll(time=300):
-    interval = 30
+def poll(time=30):
     while(True):
-        for t in range(int(time/interval)):
-            action()
-            print(str(interval) + 's wait...')
-            sleep(interval)
+        total, posted = action()
+        print(str(total) + ' succeeded,' + str(posted) + ' posted, wait ' + str(time) + 's to restart!')
+        sleep(time)
 
 poll()
