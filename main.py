@@ -2,7 +2,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-import time
+from time import sleep
 import os
 import json
 from sqlalchemy import create_engine
@@ -141,9 +141,9 @@ def action():
 def poll(time=300):
     interval = 30
     while(True):
-        for t in range(time/interval):
+        for t in range(int(time/interval)):
             action()
-            print(interval + 's wait...')
-            time.sleep(interval)
+            print(str(interval) + 's wait...')
+            sleep(interval)
 
 poll()
