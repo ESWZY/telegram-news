@@ -134,13 +134,16 @@ def action():
         if not isPosted(item['ID']):
             message = getFull(item['link'])
             res = post(message, channel, item['ID'])
-            print(item['ID'] + res)
+            print(item['ID'] + "Success!")
         else:
             print(item['ID'] + 'Posted!')
 
 def poll(time=300):
+    interval = 30
     while(True):
-        time.sleep(time)
-        action()
+        for t in range(time/interval):
+            action()
+            print(interval + 's wait...')
+            time.sleep(interval)
 
-action()
+poll()
