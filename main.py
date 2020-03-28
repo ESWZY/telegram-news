@@ -10,6 +10,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 from utils import (
     keep_link,
+    str_url_encode,
 )
 
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80 Safari/537.36'}
@@ -137,13 +138,17 @@ def post(item, channel, news_id):
     po += '\n'
     po += item['source']
 
+    # Must url encode the text
+    po = str_url_encode(po)
+    
     # https://core.telegram.org/bots/api#sendmessage    
     postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=html&disable_web_page_preview=' + disable_web_page_preview
     res = requests.get(postURL, proxies=proxies)
     if res.status_code == 200:
         db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
                             {"news_id":news_id})
-
+    else:
+        print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
         # Commit changes to database
         db.commit()
     return json.dumps(res.text)
@@ -170,6 +175,7 @@ def action(url, actionFlag):
                 message = getFull(item['link'], item=item)
             elif actionFlag == 0:
                 message = getFull(item['link'])
+            #print(message)
             res = post(message, channel, item['ID'])
             print(str(item['ID']) + " success!")
             total +=1

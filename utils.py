@@ -1,15 +1,16 @@
 # -*- coding: UTF-8 -*-
 
 from bs4 import BeautifulSoup
+import urllib.parse
 
 def keep_link(text):
     '''Remove tags except <a></a>. Otherwise, telegram api will not parse'''
-
+    
     soup = BeautifulSoup(text,'lxml')
     
     # No link here, return directlly
     if soup.select('a') == []:
-        return text
+        return soup.getText()
 
     # Find link(s)
     else:
@@ -40,5 +41,8 @@ def keep_link(text):
 
         # Return processed text and the plain text behind
         return result + BeautifulSoup(cp, 'lxml').getText()
+
+def str_url_encode(l):
+    return urllib.parse.quote(l)
 
 print("DELETED!!")
