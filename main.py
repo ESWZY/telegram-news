@@ -8,6 +8,10 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
+from utils import (
+    keep_link,
+)
+
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80 Safari/537.36'}
 proxies = {  }
 TOKEN = os.getenv("TOKEN")
@@ -105,26 +109,9 @@ def getFull(url, item=None):
     #return paragraphSelect
     #print(paragraphSelect)
 
-    def findLink(p):
-        '''Remove tags except <a></a>. Otherwise, telegram api will not parse'''
-        if p.select('a') == []:
-            return p.getText()
-        else:
-            cp = str(p)
-            result = ""
-            for link in p.select('a'):
-                other = str(cp).split(str(link))
-                
-                content = link.get_text()
-                url = link.get('href')
-
-                result += BeautifulSoup(other[0],'lxml').getText() + '<a href=\"'+url+'\" >'+content+'</a>'
-                cp = str(p).replace(str(other[0])+str(link),"")
-            return result + BeautifulSoup(cp, 'lxml').getText()
-        
     paragraphs = ""
     for p in paragraphSelect:
-        linkStr = findLink(p).strip('\u3000').strip('\n').strip()
+        linkStr = keep_link(str(p)).strip('\u3000').strip('\n').strip()
         if linkStr != "": 
             paragraphs += linkStr + '\n\n'
     #print(paragraphs)
