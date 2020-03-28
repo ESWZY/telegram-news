@@ -13,59 +13,90 @@ proxies = {  }
 TOKEN = os.getenv("TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 channel = os.getenv("CHANNEL")
+
 jsxwURL = "http://www.xinhuanet.com/jsxw.htm"
 whxwURL = "http://www.news.cn/whxw.htm"
-maxLen = 800        # The maximum length of one message.
+
+# 参数 _pageNid：栏目id _pageNum：当前json页数 _pageCnt：json取的条数 _pageTp：默认为1
+_pageNid = '11142121'
+_pageNum = '1'
+_pageCnt = '50'
+latestnewsURL = "http://qc.wa.news.cn/nodeart/list?nid=" + _pageNid + "&pgnum=" + _pageNum + "&cnt=" + _pageCnt + "&tp=1&orderby=1"   #http://www.xinhuanet.com/english/list/latestnews.htm"
+maxLen = 1000       # The maximum length of one message.
                     # Bad view if too long
                     # Accounding to API doc, max is 4096
 
 engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
 
-def getList(listURL):
+def getList(listURL, actionFlag):
     res = requests.get(listURL, headers = headers)
     res.encoding='utf-8'
     #print(res.text)
-    
-    soup = BeautifulSoup(res.text,'lxml')
-    data = soup.select('.dataList > .clearfix > h3 > a')
-    #print(data)
 
     newsList = []
-    for item in data:
-        result = {
-            "title": item.get_text(),
-            "link": item.get('href'),
-            'ID': re.findall('\d+',item.get('href'))[-1]
-        }
-        newsList.append(result)
+    
+    if actionFlag == 0:
+        soup = BeautifulSoup(res.text,'lxml')
+        data = soup.select('.dataList > .clearfix > h3 > a')
+        #print(data)
 
+        for item in data:
+            result = {
+                "title": item.get_text(),
+                "link": item.get('href'),
+                'ID': re.findall('\d+',item.get('href'))[-1]
+            }
+            newsList.append(result)
+            
+    elif actionFlag == 1:
+        listJSON = json.loads(res.text[1:-2])   # Remove brackets and load as json
+
+        for item in listJSON['data']['list']:
+            i = {'ID': 0}
+            i['ID'] = item['DocID']
+            i['link'] = item['LinkUrl']
+            i['title'] = item['Title']
+            i["PubTime"] = item["PubTime"]
+            i["SourceName"] = item["SourceName"]
+            i["Author"] = item["Author"]
+            newsList.append(i)
+         
     return newsList
 
-def getFull(url):
+def getFull(url, item=None):
     res = requests.get(url, headers = headers)
     res.encoding='utf-8'
     #print(res.text)
+    time = ''
+    source = ''
+    title = ''
+    
     soup = BeautifulSoup(res.text,'lxml')
+    if not item:
 
-    # Get release time and source
-    infoSelect = soup.select('.h-info > span')
-    try:
-        time = infoSelect[0].getText().strip()
-    except IndexError:                              # Do not have this element because of missing/403/others
-        time = ""
-    try:
-        source = infoSelect[1].getText().strip().replace('\n','')
-    except IndexError:                              # Do not have this element because of missing/403/others
-        source = ""
-    
-    # Get news title
-    titleSelect = soup.select('.h-title, title')
-    try:
-        title = titleSelect[0].getText().strip()
-    except IndexError:                              # Do not have this element because of missing/403/others
-        title = ""
-    
+        # Get release time and source
+        infoSelect = soup.select('.h-info > span')
+        try:
+            time = infoSelect[0].getText().strip()
+        except IndexError:                              # Do not have this element because of missing/403/others
+            time = ""
+        try:
+            source = infoSelect[1].getText().strip().replace('\n','')
+        except IndexError:                              # Do not have this element because of missing/403/others
+            source = ""
+        
+        # Get news title
+        titleSelect = soup.select('body > .h-title, title, Btitle')
+        try:
+            title = titleSelect[0].getText().strip()
+        except IndexError:                              # Do not have this element because of missing/403/others
+            title = ""
+    else:
+        time = item["PubTime"]
+        source = item["SourceName"]
+        title = item['title']
+        
     # Get news body
     # Two select ways:
     # Mobile news page: '.main-article > p'
@@ -104,10 +135,13 @@ def post(item, channel, news_id):
     po = ""
     po = '<b>' + item['title'] + '</b>'   # '%23' is '#'
     po += '\n\n'
+    
     disable_web_page_preview = 'True'
+    #disable_notification = 'Ture'
+    
     if len(item['paragraphs']) > maxLen:
         # Post the link only.
-        po += '<a href=\"' + item['link'] + '\">正文链接</a>\n\n'
+        po += '<a href=\"' + item['link'] + '\">Link</a>\n\n'
         # If there is exceed the limit, enable web page preview.
         disable_web_page_preview = 'False'
     else:
@@ -135,9 +169,8 @@ def isPosted(news_id):
     else:
         return True
 
-def action():
-    nlist = getList(jsxwURL)
-    nlist += getList(whxwURL)
+def action(url, actionFlag):
+    nlist = getList(url, actionFlag=actionFlag)
     nlist.reverse()
     #print(nlist)
 
@@ -145,9 +178,13 @@ def action():
     posted = 0
     for item in nlist:
         if not isPosted(item['ID']):
-            message = getFull(item['link'])
+            message = None
+            if actionFlag == 1:
+                message = getFull(item['link'], item=item)
+            elif actionFlag == 0:
+                message = getFull(item['link'])
             res = post(message, channel, item['ID'])
-            print(item['ID'] + " success!")
+            print(str(item['ID']) + " success!")
             total +=1
         else:
             posted += 1
@@ -156,8 +193,14 @@ def action():
 
 def poll(time=30):
     while(True):
-        total, posted = action()
-        print(str(total) + ' succeeded,' + str(posted) + ' posted, wait ' + str(time) + 's to restart!')
+        total, posted = action(latestnewsURL, 1)
+        print('1:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
+        total, posted = action(jsxwURL, 0)
+        print('2:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
+        total, posted = action(whxwURL, 0)
+        print('3:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
+
+        print('Wait ' + str(time) + 's to restart!')
         sleep(time)
 
 poll()
