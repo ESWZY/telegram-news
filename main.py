@@ -13,6 +13,10 @@ from utils import (
     str_url_encode,
 )
 
+from displaypolicy import (
+    default_policy,
+)
+
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80 Safari/537.36'}
 proxies = {  }
 TOKEN = os.getenv("TOKEN")
@@ -27,9 +31,6 @@ _pageNid = '11142121'
 _pageNum = '1'
 _pageCnt = '50'
 latestnewsURL = "http://qc.wa.news.cn/nodeart/list?nid=" + _pageNid + "&pgnum=" + _pageNum + "&cnt=" + _pageCnt + "&tp=1&orderby=1"   #http://www.xinhuanet.com/english/list/latestnews.htm"
-maxLen = 1000       # The maximum length of one message.
-                    # Bad view if too long
-                    # Accounding to API doc, max is 4096
 
 engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
@@ -120,29 +121,14 @@ def getFull(url, item=None):
     return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
 def post(item, channel, news_id):
-    po = ""
-    po = '<b>' + item['title'] + '</b>'   # '%23' is '#'
-    po += '\n\n'
-    
-    disable_web_page_preview = 'True'
-    #disable_notification = 'Ture'
-    
-    if len(item['paragraphs']) > maxLen:
-        # Post the link only.
-        po += '<a href=\"' + item['link'] + '\">Link</a>\n\n'
-        # If there is exceed the limit, enable web page preview.
-        disable_web_page_preview = 'False'
-    else:
-        po += item['paragraphs']
-    po += item['time']
-    po += '\n'
-    po += item['source']
+
+    po, parse_mode, disable_web_page_preview= default_policy(item)
 
     # Must url encode the text
     po = str_url_encode(po)
     
     # https://core.telegram.org/bots/api#sendmessage    
-    postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=html&disable_web_page_preview=' + disable_web_page_preview
+    postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
     res = requests.get(postURL, proxies=proxies)
     if res.status_code == 200:
         db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
