@@ -182,4 +182,6 @@ def poll(time=30):
         print('Wait ' + str(time) + 's to restart!')
         sleep(time)
 
-poll()
+#poll()
+
+print("DELETED!!")

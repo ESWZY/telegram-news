@@ -7,12 +7,13 @@ def default_policy(item):
     disable_web_page_preview = 'True'
     #disable_notification = 'Ture'
     
-    maxlen = 600
+    maxlen = 800
+    maxpar = 10
     po = ""
     po = '<b>' + item['title'] + '</b>'
     po += '\n\n'
-    
-    if len(item['paragraphs']) > maxlen:
+
+    if len(item['paragraphs']) > maxlen or item['paragraphs'].count('\n') > maxpar * 2:
         # Post the link only.
         po += '<a href=\"' + item['link'] + '\">Link</a>\n\n'
         # If there is exceed the limit, enable web page preview.

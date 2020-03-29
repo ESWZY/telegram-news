@@ -1,5 +1,4 @@
 # -*- coding: UTF-8 -*-
-
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -8,6 +7,7 @@ import os
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+import threading
 
 from utils import (
     keep_link,
@@ -22,35 +22,30 @@ proxies = {  }
 TOKEN = os.getenv("TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 channel = os.getenv("CHANNEL")
-jsxwURL = "http://www.xinhuanet.com/jsxw.htm"
-whxwURL = "http://www.news.cn/whxw.htm"
-
-# 参数 _pageNid：栏目id _pageNum：当前json页数 _pageCnt：json取的条数 _pageTp：默认为1
-_pageNid = '11142121'
-_pageNum = '1'
-_pageCnt = '50'
-latestnewsURL = "http://qc.wa.news.cn/nodeart/list?nid=" + _pageNid + "&pgnum=" + _pageNum + "&cnt=" + _pageCnt + "&tp=1&orderby=1"   #http://www.xinhuanet.com/english/list/latestnews.htm"
 
 engine = create_engine(DATABASE_URL)
 db = scoped_session(sessionmaker(bind=engine))
 
 class NewsExtractor(object):
-
     _ready = False
+    _listURL = ''
+    display_policy = default_policy
 
-    def __init__(self):
-        pass
-    
-    def getList(self, listURL, actionFlag):
-        res = requests.get(listURL, headers = headers)
-        res.encoding='utf-8'
-        #print(res.text)
+    def __init__(self, listURL, display_policy = default_policy):
+        # TODO: listURL is a list
+        self.listURL = listURL
+        self.display_policy = display_policy
 
-        newsList = []
-        
-        if actionFlag == 0:
+    def getList(self):
+        res = requests.get(self.listURL, headers = headers)
+        if res.status_code == 200:
+            res.encoding='utf-8'
+            #print(res.text)
+
+            newsList = []
+
             soup = BeautifulSoup(res.text,'lxml')
-            data = soup.select('.dataList > .clearfix > h3 > a')
+            data = soup.select('.dataList > .clearfix > h3 > a')    # TODO: compatibility
             #print(data)
 
             for item in data:
@@ -60,23 +55,13 @@ class NewsExtractor(object):
                     'ID': re.findall('\d+',item.get('href'))[-1]
                 }
                 newsList.append(result)
-                
-        elif actionFlag == 1:
-            listJSON = json.loads(res.text[1:-2])   # Remove brackets and load as json
 
-            for item in listJSON['data']['list']:
-                i = {'ID': 0}
-                i['ID'] = item['DocID']
-                i['link'] = item['LinkUrl']
-                i['title'] = item['Title']
-                i["PubTime"] = item["PubTime"]
-                i["SourceName"] = item["SourceName"]
-                i["Author"] = item["Author"]
-                newsList.append(i)
+            return newsList
+        else:
+            print('List URL error exception!')
+            return None
 
-        return newsList
-
-    def getFull(self, url, item=None):
+    def getFull(self, url, item):
         res = requests.get(url, headers = headers)
         res.encoding='utf-8'
         #print(res.text)
@@ -85,30 +70,31 @@ class NewsExtractor(object):
         title = ''
         
         soup = BeautifulSoup(res.text,'lxml')
-        if not item:
 
-            # Get release time and source
-            infoSelect = soup.select('.h-info > span')
-            try:
-                time = infoSelect[0].getText().strip()
-            except IndexError:                              # Do not have this element because of missing/403/others
-                time = ""
-            try:
-                source = infoSelect[1].getText().strip().replace('\n','')
-            except IndexError:                              # Do not have this element because of missing/403/others
-                source = ""
-            
-            # Get news title
-            titleSelect = soup.select('body > .h-title, title, Btitle')
-            try:
-                title = titleSelect[0].getText().strip()
-            except IndexError:                              # Do not have this element because of missing/403/others
-                title = ""
-        else:
-            time = item["PubTime"]
-            source = item["SourceName"]
-            title = item['title']
-            
+        # Get release time and source
+        timeSelect = soup.select('.h-info > span:nth-child(1), '# TODO: compatibility
+                                 '.time')
+        try:
+            time = timeSelect[0].getText().strip()
+        except IndexError:                              # Do not have this element because of missing/403/others
+            time = ""
+
+        sourceSelect = soup.select('.h-info > span:nth-child(2), '# TODO: compatibility
+                                   '.source')
+        try:
+            source = sourceSelect[0].getText().strip().replace('\n','')
+        except IndexError:                              # Do not have this element because of missing/403/others
+            source = ""
+
+        # Get news title
+        titleSelect = soup.select('.h-title, '# TODO: compatibility
+                                  '.title, '
+                                  '.Btitle')
+        try:
+            title = titleSelect[0].getText().strip()
+        except IndexError:                              # Do not have this element because of missing/403/others
+            title = ""
+
         # Get news body
         # Two select ways:
         # Mobile news page: '.main-article > p'
@@ -128,7 +114,8 @@ class NewsExtractor(object):
 
     def post(self, item, channel, news_id):
 
-        po, parse_mode, disable_web_page_preview= default_policy(item)
+        # Get display policy by item info
+        po, parse_mode, disable_web_page_preview= self.display_policy(item)
 
         # Must url encode the text
         po = str_url_encode(po)
@@ -139,11 +126,11 @@ class NewsExtractor(object):
         if res.status_code == 200:
             db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
                                 {"news_id":news_id})
-        else:
-            print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
             # Commit changes to database
             db.commit()
-        return json.dumps(res.text)
+        else:
+            print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+        return res
         
     def isPosted(self, news_id):
         rows = db.execute("SELECT * FROM news WHERE news_id = :news_id",
@@ -153,8 +140,8 @@ class NewsExtractor(object):
         else:
             return True
 
-    def action(self, url, actionFlag):
-        nlist = self.getList(url, actionFlag=actionFlag)
+    def action(self):
+        nlist = self.getList()
         nlist.reverse()
         #print(nlist)
 
@@ -162,27 +149,27 @@ class NewsExtractor(object):
         posted = 0
         for item in nlist:
             if not self.isPosted(item['ID']):
-                message = None
-                if actionFlag == 1:
-                    message = self.getFull(item['link'], item=item)
-                elif actionFlag == 0:
-                    message = self.getFull(item['link'])
+                message = self.getFull(item['link'], item=item)
                 #print(message)
+
+                # Post the message by api
                 res = self.post(message, channel, item['ID'])
-                print(str(item['ID']) + " success!")
-                total +=1
+                print(str(item['ID']) + " " + str(res.status_code))
+                total += 1
             else:
                 posted += 1
                 #print(item['ID'] + 'Posted!')
         return total, posted
 
-    def poll(self, url, flag, time=30):
-        while(True):
-            total, posted = self.action(url, flag)
-            print('1:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
-            total, posted = self.action(url, flag)
+    def poll(self, time=30):
+        def work():
+            while (True):
+                total, posted = self.action()
+                print('1:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
+                print('Wait ' + str(time) + 's to restart!')
+                sleep(time)
 
-            print('Wait ' + str(time) + 's to restart!')
-            sleep(time)
+        t = threading.Thread(target=work)
+        t.start()
 
 print("DELETED!!")
