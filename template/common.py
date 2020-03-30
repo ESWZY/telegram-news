@@ -17,30 +17,37 @@ from utils import (
 from displaypolicy import (
     default_policy,
 )
-headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80 Safari/537.36'}
-proxies = {  }
-TOKEN = os.getenv("TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
-channel = os.getenv("CHANNEL")
-
-engine = create_engine(DATABASE_URL)
-db = scoped_session(sessionmaker(bind=engine))
 
 class NewsExtractor(object):
     _ready = False
     _listURLs = []
     _lang = ""
     _sendList = []
+    _headers = {}
+    _proxies = {}
     display_policy = default_policy
 
-    def __init__(self, listURLs, sendList = [], lang = '', display_policy = default_policy):
-        self.listURLs = listURLs
+    def __init__(self, listURLs, sendList = [], lang = '', display_policy = default_policy, headers=None, proxies={}):
+        self._listURLs = listURLs
         self._lang = lang
         self._sendList = sendList
         self.display_policy = display_policy
 
+        if headers:
+            self._headers = headers
+        else:
+            self._headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80 Safari/537.36'}
+        self._proxies = proxies
+
+        self.TOKEN = os.getenv("TOKEN")
+        self.DATABASE_URL = os.getenv("DATABASE_URL")
+        engine = create_engine(self.DATABASE_URL)
+        self.db = scoped_session(sessionmaker(bind=engine))
+
     def getList(self, listURL):
-        res = requests.get(listURL, headers = headers)
+        res = requests.get(listURL, headers = self._headers)
+        #print(res.text)
         if res.status_code == 200:
             res.encoding='utf-8'
             #print(res.text)
@@ -61,11 +68,13 @@ class NewsExtractor(object):
 
             return newsList
         else:
-            print('List URL error exception!')
-            return None
+            print('List URL error exception! ' + str(res.status_code))
+            if res.status_code == 403:
+                print('May be your header did not work.')
+            return []
 
     def getFull(self, url, item):
-        res = requests.get(url, headers = headers)
+        res = requests.get(url, headers = self._headers)
         res.encoding='utf-8'
         #print(res.text)
         time = ''
@@ -126,19 +135,19 @@ class NewsExtractor(object):
         res = None
         for channel in self._sendList:
         # https://core.telegram.org/bots/api#sendmessage    
-            postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
-            res = requests.get(postURL, proxies=proxies)
+            postURL = 'https://api.telegram.org/bot' + self.TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+            res = requests.get(postURL, proxies=self._proxies)
             if res.status_code == 200:
-                db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
+                self.db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
                                     {"news_id":news_id})
                 # Commit changes to database
-                db.commit()
+                self.db.commit()
             else:
                 print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
         return res
         
     def isPosted(self, news_id):
-        rows = db.execute("SELECT * FROM news WHERE news_id = :news_id",
+        rows = self.db.execute("SELECT * FROM news WHERE news_id = :news_id",
                                 {"news_id": news_id})
         if rows.rowcount == 0:
             return False
@@ -147,8 +156,8 @@ class NewsExtractor(object):
 
     def action(self):
         nlist=[]
-        for l in self.listURLs:
-            nlist += self.getList(l)
+        for link in self._listURLs:
+            nlist += self.getList(link)
 
         nlist.reverse()
         #print(nlist)
@@ -175,7 +184,7 @@ class NewsExtractor(object):
                 total, posted = self.action()
                 if total + posted == 0:
                     print('Empty list:')
-                print(self._lang + str(total) + ' succeeded,' + str(posted) + ' posted.')
+                print(self._lang + ': ' + str(total) + ' succeeded,' + str(posted) + ' posted.',end=' ')
                 print('Wait ' + str(time) + 's to restart!')
                 sleep(time)
 
@@ -188,7 +197,7 @@ class NewsExtractorJSON(NewsExtractor):
         super(NewsExtractorJSON, self).__init__(listURLs, sendList = sendList, lang = lang, display_policy = display_policy)
 
     def getList(self, listURL):
-        res = requests.get(listURL, headers = headers)
+        res = requests.get(listURL, headers = self._headers)
         if res.status_code == 200:
             res.encoding='utf-8'
             #print(res.text)
@@ -219,7 +228,7 @@ class NewsExtractorJSON(NewsExtractor):
             return None
 
     def getFull(self, url, item=None):
-        res = requests.get(url, headers=headers)
+        res = requests.get(url, headers = self._headers)
         res.encoding = 'utf-8'
         # print(res.text)
         time = ''

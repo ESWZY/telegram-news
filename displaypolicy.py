@@ -15,7 +15,7 @@ def default_policy(item):
 
     if len(item['paragraphs']) > maxlen or item['paragraphs'].count('\n') > maxpar * 2:
         # Post the link only.
-        po += '<a href=\"' + item['link'] + '\">Link</a>\n\n'
+        po += '<a href=\"' + item['link'] + '\">Full text link</a>\n\n'
         # If there is exceed the limit, enable web page preview.
         disable_web_page_preview = 'False'
     else:
