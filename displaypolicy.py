@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import re
 
 MAXLEN = 4096
 
@@ -8,7 +9,7 @@ def default_policy(item):
     disable_web_page_preview = 'True'
     # disable_notification = 'Ture'
 
-    maxlen = 800
+    maxlen = 1000
     maxpar = 10
     po = ""
     po = '<b>' + item['title'] + '</b>'
@@ -29,3 +30,7 @@ def default_policy(item):
     assert len(po) < MAXLEN
 
     return po, parse_mode, disable_web_page_preview
+
+
+def default_id_policy(self, link):
+    return re.findall('\d+', link)[-1]

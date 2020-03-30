@@ -12,10 +12,12 @@ import threading
 from utils import (
     keep_link,
     str_url_encode,
+    is_single_media,
 )
 
 from displaypolicy import (
     default_policy,
+    default_id_policy,
 )
 
 
@@ -26,6 +28,7 @@ class NewsExtractor(object):
     _headers = {}
     _proxies = {}
     _display_policy = default_policy
+    _id_policy = default_id_policy
 
     # TODO: compatibility
     _list_selector = '.dataList > .clearfix > h3 > a, ' \
@@ -79,6 +82,9 @@ class NewsExtractor(object):
     def set_paragraph_selector(self, paragraph_selector):
         self._paragraph_selector = paragraph_selector
 
+    def set_id_policy(self, id_policy):
+        self._id_policy = id_policy
+
     def get_list(self, listURL):
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
@@ -96,7 +102,7 @@ class NewsExtractor(object):
                 result = {
                     "title": item.get_text(),
                     "link": item.get('href'),
-                    'ID': re.findall('\d+', item.get('href'))[-1]
+                    'ID': self._id_policy(item.get('href'))
                 }
                 news_list.append(result)
 
@@ -151,10 +157,20 @@ class NewsExtractor(object):
         # print(paragraph_select)
 
         paragraphs = ""
+        blank_flag = False
         for p in paragraph_select:
-            link_str = keep_link(str(p),url).strip('\u3000').strip('\n').strip()
-            if link_str != "":
+            link_str = keep_link(str(p), url).strip('\u3000').strip('\n').strip()
+
+            # If there is only ONE [Media] link, it should be concerned as a word.
+            # This is the
+            if link_str != "" and not is_single_media(link_str):
+                if blank_flag:
+                    link_str = '\n\n' + link_str
+                    blank_flag = False
                 paragraphs += link_str + '\n\n'
+            elif link_str != "":
+                paragraphs += link_str + ' '
+                blank_flag = True
         # print(paragraphs)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
@@ -287,7 +303,7 @@ class NewsExtractorJSON(NewsExtractor):
 
         paragraphs = ""
         for p in paragraph_select:
-            link_str = keep_link(str(p),url).strip('\u3000').strip('\n').strip()
+            link_str = keep_link(str(p), url).strip('\u3000').strip('\n').strip()
             if link_str != "":
                 paragraphs += link_str + '\n\n'
         # print(paragraphs)
