@@ -28,16 +28,19 @@ db = scoped_session(sessionmaker(bind=engine))
 
 class NewsExtractor(object):
     _ready = False
-    _listURL = ''
+    _listURLs = []
+    _lang = ""
+    _sendList = []
     display_policy = default_policy
 
-    def __init__(self, listURL, display_policy = default_policy):
-        # TODO: listURL is a list
-        self.listURL = listURL
+    def __init__(self, listURLs, sendList = [], lang = '', display_policy = default_policy):
+        self.listURLs = listURLs
+        self._lang = lang
+        self._sendList = sendList
         self.display_policy = display_policy
 
-    def getList(self):
-        res = requests.get(self.listURL, headers = headers)
+    def getList(self, listURL):
+        res = requests.get(listURL, headers = headers)
         if res.status_code == 200:
             res.encoding='utf-8'
             #print(res.text)
@@ -112,24 +115,26 @@ class NewsExtractor(object):
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
-    def post(self, item, channel, news_id):
+    def post(self, item, news_id):
 
         # Get display policy by item info
         po, parse_mode, disable_web_page_preview= self.display_policy(item)
 
         # Must url encode the text
         po = str_url_encode(po)
-        
+
+        res = None
+        for channel in self._sendList:
         # https://core.telegram.org/bots/api#sendmessage    
-        postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
-        res = requests.get(postURL, proxies=proxies)
-        if res.status_code == 200:
-            db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
-                                {"news_id":news_id})
-            # Commit changes to database
-            db.commit()
-        else:
-            print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+            postURL = 'https://api.telegram.org/bot' + TOKEN + '/sendMessage?chat_id=' + channel + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+            res = requests.get(postURL, proxies=proxies)
+            if res.status_code == 200:
+                db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
+                                    {"news_id":news_id})
+                # Commit changes to database
+                db.commit()
+            else:
+                print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
         return res
         
     def isPosted(self, news_id):
@@ -141,7 +146,10 @@ class NewsExtractor(object):
             return True
 
     def action(self):
-        nlist = self.getList()
+        nlist=[]
+        for l in self.listURLs:
+            nlist += self.getList(l)
+
         nlist.reverse()
         #print(nlist)
 
@@ -153,7 +161,7 @@ class NewsExtractor(object):
                 #print(message)
 
                 # Post the message by api
-                res = self.post(message, channel, item['ID'])
+                res = self.post(message, item['ID'])
                 print(str(item['ID']) + " " + str(res.status_code))
                 total += 1
             else:
@@ -165,7 +173,9 @@ class NewsExtractor(object):
         def work():
             while (True):
                 total, posted = self.action()
-                print('1:' + str(total) + ' succeeded,' + str(posted) + ' posted.')
+                if total + posted == 0:
+                    print('Empty list:')
+                print(self._lang + str(total) + ' succeeded,' + str(posted) + ' posted.')
                 print('Wait ' + str(time) + 's to restart!')
                 sleep(time)
 
