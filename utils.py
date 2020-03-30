@@ -3,11 +3,14 @@
 from bs4 import BeautifulSoup
 import urllib.parse
 
-def keep_link(text):
-    '''Remove tags except <a></a>. Otherwise, telegram api will not parse'''
-    
-    soup = BeautifulSoup(text,'lxml')
-    
+
+def keep_link(text, url):
+    """Remove tags except <a></a>. Otherwise, telegram api will not parse"""
+
+    soup = BeautifulSoup(text, 'lxml')
+    # print(text)
+    # print(soup.select('img, a'))
+
     # No link here, return directlly
     if soup.select('a') == []:
         return soup.getText()
@@ -22,7 +25,7 @@ def keep_link(text):
         result = ""
 
         # Remove other tags, except <a>
-        for link in soup.select('a'):
+        for link in soup.select('a, img'):
 
             # Split the text by <a> tag
             other = str(cp).split(str(link))
@@ -31,18 +34,20 @@ def keep_link(text):
             content = link.get_text()
             url = link.get('href')
 
-            # Get plain text and concatenate with 
-            result += BeautifulSoup(other[0],'lxml').getText()
+            # Get plain text and concatenate with link
+            result += BeautifulSoup(other[0], 'lxml').getText()
             if url:
                 result += '<a href=\"' + url + '\" >' + str(content) + '</a>'
 
             # Remove the processed text from processing string
-            cp = str(cp).replace(str(other[0])+str(link),"")
+            cp = str(cp).replace(str(other[0]) + str(link), "")
 
         # Return processed text and the plain text behind
         return result + BeautifulSoup(cp, 'lxml').getText()
 
+
 def str_url_encode(l):
     return urllib.parse.quote(l)
+
 
 print("DELETED!!")

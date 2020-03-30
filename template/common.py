@@ -25,13 +25,31 @@ class NewsExtractor(object):
     _sendList = []
     _headers = {}
     _proxies = {}
-    display_policy = default_policy
+    _display_policy = default_policy
+
+    # TODO: compatibility
+    _list_selector = '.dataList > .clearfix > h3 > a, ' \
+                     '.newsList2 > h2 > a, ' \
+                     '.newsList > h2 > a'
+
+    _time_selector = '.h-info > span:nth-child(1), ' \
+                     '.time'
+
+    _title_selector = '.h-title, ' \
+                      '#conTit > h1, ' \
+                      '.title, ' \
+                      '.Btitle'
+
+    _source_selector = '.h-info > span:nth-child(2), ' \
+                       '.source'
+
+    _paragraph_selector = 'p'
 
     def __init__(self, listURLs, sendList=[], lang='', display_policy=default_policy, headers=None, proxies={}):
         self._listURLs = listURLs
         self._lang = lang
         self._sendList = sendList
-        self.display_policy = display_policy
+        self._display_policy = display_policy
 
         if headers:
             self._headers = headers
@@ -46,6 +64,21 @@ class NewsExtractor(object):
         engine = create_engine(self.DATABASE_URL)
         self.db = scoped_session(sessionmaker(bind=engine))
 
+    def set_list_selector(self, list_selector):
+        self._list_selector = list_selector
+
+    def set_time_selector(self, time_selector):
+        self._time_selector = time_selector
+
+    def set_title_selector(self, title_selector):
+        self._title_selector = title_selector
+
+    def set_source_selector(self, source_selector):
+        self._source_selector = source_selector
+
+    def set_paragraph_selector(self, paragraph_selector):
+        self._paragraph_selector = paragraph_selector
+
     def get_list(self, listURL):
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
@@ -56,7 +89,7 @@ class NewsExtractor(object):
             news_list = []
 
             soup = BeautifulSoup(res.text, 'lxml')
-            data = soup.select('.dataList > .clearfix > h3 > a')  # TODO: compatibility
+            data = soup.select(self._list_selector)  # TODO: compatibility
             # print(data)
 
             for item in data:
@@ -85,40 +118,41 @@ class NewsExtractor(object):
         soup = BeautifulSoup(res.text, 'lxml')
 
         # Get release time and source
-        time_select = soup.select('.h-info > span:nth-child(1), '  # TODO: compatibility
-                                  '.time')
+        time_select = soup.select(self._time_selector)
         try:
             time = time_select[0].getText().strip()
+            time = time.split('丨')[0]
+
+            # If time is too long, maybe get irrelevant  info
+            if len(time) > 50:
+                time = ''
         except IndexError:  # Do not have this element because of missing/403/others
             time = ""
 
-        source_select = soup.select('.h-info > span:nth-child(2), '  # TODO: compatibility
-                                    '.source')
+        source_select = soup.select(self._source_selector)
         try:
             source = source_select[0].getText().strip().replace('\n', '')
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
 
         # Get news title
-        title_select = soup.select('.h-title, '  # TODO: compatibility
-                                   '.title, '
-                                   '.Btitle')
+        title_select = soup.select(self._title_selector)
         try:
             title = title_select[0].getText().strip()
         except IndexError:  # Do not have this element because of missing/403/others
-            title = ""
+            title = item['title']
 
         # Get news body
         # Two select ways:
         # Mobile news page: '.main-article > p'
         # Insatnce news page: '#p-detail > p'
-        paragraph_select = soup.select('p')
+        paragraph_select = soup.select(self._paragraph_selector)
         # return paragraph_select
         # print(paragraph_select)
 
         paragraphs = ""
         for p in paragraph_select:
-            link_str = keep_link(str(p)).strip('\u3000').strip('\n').strip()
+            link_str = keep_link(str(p),url).strip('\u3000').strip('\n').strip()
             if link_str != "":
                 paragraphs += link_str + '\n\n'
         # print(paragraphs)
@@ -128,7 +162,7 @@ class NewsExtractor(object):
     def post(self, item, news_id):
 
         # Get display policy by item info
-        po, parse_mode, disable_web_page_preview = self.display_policy(item)
+        po, parse_mode, disable_web_page_preview = self._display_policy(item)
 
         # Must url encode the text
         po = str_url_encode(po)
@@ -145,6 +179,7 @@ class NewsExtractor(object):
                 self.db.commit()
             else:
                 print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+                print(res.text)
         return res
 
     def is_posted(self, news_id):
@@ -252,7 +287,7 @@ class NewsExtractorJSON(NewsExtractor):
 
         paragraphs = ""
         for p in paragraph_select:
-            link_str = keep_link(str(p)).strip('\u3000').strip('\n').strip()
+            link_str = keep_link(str(p),url).strip('\u3000').strip('\n').strip()
             if link_str != "":
                 paragraphs += link_str + '\n\n'
         # print(paragraphs)
