@@ -182,4 +182,71 @@ class NewsExtractor(object):
         t = threading.Thread(target=work)
         t.start()
 
+class NewsExtractorJSON(NewsExtractor):
+
+    def __init__(self, listURLs, sendList, lang = '', display_policy = default_policy):
+        super(NewsExtractorJSON, self).__init__(listURLs, sendList = sendList, lang = lang, display_policy = display_policy)
+
+    def getList(self, listURL):
+        res = requests.get(listURL, headers = headers)
+        if res.status_code == 200:
+            res.encoding='utf-8'
+            #print(res.text)
+
+            newsList = []
+            listJSON = None
+            try:
+                listJSON = json.loads(res.text)
+            except json.decoder.JSONDecodeError:
+                try:
+                    listJSON = json.loads(res.text[1:-2])  # Remove brackets and load as json
+                except Exception:
+                    pass
+
+            for item in listJSON['data']['list']:
+                i = {'ID': 0}
+                i['ID'] = item['DocID']
+                i['link'] = item['LinkUrl']
+                i['title'] = item['Title']
+                i["PubTime"] = item["PubTime"]
+                i["SourceName"] = item["SourceName"]
+                i["Author"] = item["Author"]
+                newsList.append(i)
+
+            return newsList
+        else:
+            print('List URL error exception!')
+            return None
+
+    def getFull(self, url, item=None):
+        res = requests.get(url, headers=headers)
+        res.encoding = 'utf-8'
+        # print(res.text)
+        time = ''
+        source = ''
+        title = ''
+
+        soup = BeautifulSoup(res.text, 'lxml')
+
+        time = item["PubTime"]
+        source = item["SourceName"]
+        title = item['title']
+
+        # Get news body
+        # Two select ways:
+        # Mobile news page: '.main-article > p'
+        # Insatnce news page: '#p-detail > p'
+        paragraphSelect = soup.select('p')
+        # return paragraphSelect
+        # print(paragraphSelect)
+
+        paragraphs = ""
+        for p in paragraphSelect:
+            linkStr = keep_link(str(p)).strip('\u3000').strip('\n').strip()
+            if linkStr != "":
+                paragraphs += linkStr + '\n\n'
+        # print(paragraphs)
+
+        return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
+
 print("DELETED!!")
