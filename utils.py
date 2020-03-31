@@ -31,13 +31,11 @@ def keep_img(text, url):
             img_link = img.get('src')
 
             # Get plain text and concatenate with link
-            result += BeautifulSoup(other[0], 'lxml').getText()
+            result += BeautifulSoup(other[0], 'lxml').getText().strip()
             if img_link:
+
                 # If the image link is a relative path
-                if img_link[:4] != 'http':
-                    img_links = url.split('/')
-                    img_links = img_links[:-1]
-                    img_link = "/".join(img_links) + '/' + img_link
+                img_link = get_full_link(img_link, url)
 
                 # Embed the image as a link
                 result += '<a href=\"' + img_link + '\">' + '[Media]' + '</a>'
@@ -110,5 +108,12 @@ def is_single_media(text):
 def str_url_encode(l):
     return urllib.parse.quote(l)
 
+
+def get_full_link(link, url):
+    if link[:4] != 'http':
+        links = url.split('/')
+        links = links[:3]
+        link = "/".join(links) + '/' + link
+    return link
 
 print("DELETED!!")
