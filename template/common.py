@@ -157,7 +157,7 @@ class NewsExtractor(object):
 
         source_select = soup.select(self._source_selector)
         try:
-            source = source_select[0].getText().strip().replace('\n', '')
+            source = keep_link(source_select[0].getText(), url).strip().replace('\n', '')
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
 
@@ -262,6 +262,7 @@ class NewsExtractor(object):
                     sleep(time)
                 except Exception:
                     traceback.print_exc()
+                    sleep(1)
 
         t = threading.Thread(target=work)
         t.start()
