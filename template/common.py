@@ -242,12 +242,15 @@ class NewsExtractor(object):
     def poll(self, time=30):
         def work():
             while (True):
-                total, posted = self.action()
-                if total + posted == 0:
-                    print('Empty list:')
-                print(self._lang + ': ' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
-                print('Wait ' + str(time) + 's to restart!')
-                sleep(time)
+                try:
+                    total, posted = self.action()
+                    if total + posted == 0:
+                        print('Empty list:')
+                    print(self._lang + ': ' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
+                    print('Wait ' + str(time) + 's to restart!')
+                    sleep(time)
+                except Exception as e:
+                    print(e)
 
         t = threading.Thread(target=work)
         t.start()
