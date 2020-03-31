@@ -32,6 +32,10 @@ class NewsExtractor(object):
     _proxies = {}
     _display_policy = default_policy
     _id_policy = default_id_policy
+    _TOKEN = os.getenv("TOKEN")
+    _DATABASE_URL = os.getenv("DATABASE_URL")
+    _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
+    _table_name = 'news'
 
     # TODO: compatibility
     _list_selector = '.dataList > .clearfix > h3 > a, ' \
@@ -65,11 +69,6 @@ class NewsExtractor(object):
                               'Chrome/80 Safari/537.36'}
         self._proxies = proxies
 
-        self.TOKEN = os.getenv("TOKEN")
-        self.DATABASE_URL = os.getenv("DATABASE_URL")
-        engine = create_engine(self.DATABASE_URL)
-        self.db = scoped_session(sessionmaker(bind=engine))
-
     def set_list_selector(self, list_selector):
         self._list_selector = list_selector
 
@@ -87,6 +86,16 @@ class NewsExtractor(object):
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
+
+    def set_bot_token(self, new_token):
+        self._TOKEN = new_token
+
+    def set_database_url(self, new_db_url):
+        self._DATABASE_URL = new_db_url
+        self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
+
+    def set_table_name(self, table_name):
+        self._table_name = table_name
 
     def get_list(self, listURL):
         res = requests.get(listURL, headers=self._headers)
@@ -197,21 +206,21 @@ class NewsExtractor(object):
         res = None
         for chat_id in self._sendList:
             # https://core.telegram.org/bots/api#sendmessage
-            post_url = 'https://api.telegram.org/bot' + self.TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+            post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
             res = requests.get(post_url, proxies=self._proxies)
             if res.status_code == 200:
-                self.db.execute("INSERT INTO news (news_id, time) VALUES (:news_id, NOW())",
-                                {"news_id": news_id})
+                self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
+                                 {"news_id": news_id})
                 # Commit changes to database
-                self.db.commit()
+                self._db.commit()
             else:
                 print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                 print(res.text)
         return res
 
     def is_posted(self, news_id):
-        rows = self.db.execute("SELECT * FROM news WHERE news_id = :news_id",
-                               {"news_id": news_id})
+        rows = self._db.execute("SELECT * FROM " + self._table_name + " WHERE news_id = :news_id",
+                                {"news_id": news_id})
         if rows.rowcount == 0:
             return False
         else:
