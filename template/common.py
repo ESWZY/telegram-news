@@ -1,4 +1,6 @@
 # -*- coding: UTF-8 -*-
+import traceback
+
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -249,8 +251,8 @@ class NewsExtractor(object):
                     print(self._lang + ': ' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
                     sleep(time)
-                except Exception as e:
-                    print(e)
+                except Exception:
+                    traceback.print_exc()
 
         t = threading.Thread(target=work)
         t.start()
