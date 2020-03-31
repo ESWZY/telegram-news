@@ -27,13 +27,11 @@ def keep_img(text, url):
             other = str(cp).split(str(img))
 
             # Get the image url
-            content = img.get_text()
             img_link = img.get('src')
 
             # Get plain text and concatenate with link
             result += BeautifulSoup(other[0], 'lxml').getText().strip()
             if img_link:
-
                 # If the image link is a relative path
                 img_link = get_full_link(img_link, url)
 
@@ -100,7 +98,7 @@ def is_single_media(text):
         # print(anchor)
 
         if anchor.getText() == '[Media]':
-            if text.replace(str(anchor),'') == '':
+            if text.replace(str(anchor), '') == '':
                 return True
     return False
 
@@ -112,6 +110,12 @@ def str_url_encode(l):
 def get_full_link(link, base_url):
     """Parse the relative link to absolute link."""
     return urllib.parse.urljoin(base_url, link)
+
+
+def is_length_immunity(item):
+    if item['title'][:4] == '综合消息':
+        return True
+    return False
 
 
 print("DELETED!!")
