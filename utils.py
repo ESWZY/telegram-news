@@ -109,11 +109,9 @@ def str_url_encode(l):
     return urllib.parse.quote(l)
 
 
-def get_full_link(link, url):
-    if link[:4] != 'http':
-        links = url.split('/')
-        links = links[:3]
-        link = "/".join(links) + '/' + link
-    return link
+def get_full_link(link, base_url):
+    """Parse the relative link to absolute link."""
+    return urllib.parse.urljoin(base_url, link)
+
 
 print("DELETED!!")
