@@ -13,6 +13,7 @@ from utils import (
     keep_link,
     str_url_encode,
     is_single_media,
+    get_full_link,
 )
 
 from displaypolicy import (
@@ -95,14 +96,16 @@ class NewsExtractor(object):
             news_list = []
 
             soup = BeautifulSoup(res.text, 'lxml')
-            data = soup.select(self._list_selector)  # TODO: compatibility
+            data = soup.select(self._list_selector)
             # print(data)
 
             for item in data:
+                link = get_full_link(item.get('href'), listURL)
+
                 result = {
                     "title": item.get_text(),
-                    "link": item.get('href'),
-                    'ID': self._id_policy(item.get('href'))
+                    "link": link,
+                    'ID': self._id_policy(link)
                 }
                 news_list.append(result)
 
@@ -126,11 +129,17 @@ class NewsExtractor(object):
         # Get release time and source
         time_select = soup.select(self._time_selector)
         try:
-            time = time_select[0].getText().strip()
-            time = time.split('丨')[0]
+            for text in time_select:
+                time = text.getText().strip()
+                time = time.split('丨')[0]
+                if time:
+                    break
+            time = time.split('\n')[0]
+            time = time.split('	')[0]
+            #print(time)
 
             # If time is too long, maybe get irrelevant  info
-            if len(time) > 50:
+            if len(time) > 100:
                 time = ''
         except IndexError:  # Do not have this element because of missing/403/others
             time = ""
