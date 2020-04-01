@@ -191,6 +191,8 @@ class NewsExtractor(object):
             elif link_str != "":
                 paragraphs += link_str + ' '
                 blank_flag = True
+        if paragraphs and paragraphs[-1] == ' ':
+            paragraphs += '\n\n'
         # print(paragraphs)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
@@ -216,6 +218,8 @@ class NewsExtractor(object):
             else:
                 print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                 print(res.text)
+                res_time = json.loads(res.text)['parameters']['retry_after']
+                sleep(res_time)
         return res
 
     def is_posted(self, news_id):
@@ -257,7 +261,7 @@ class NewsExtractor(object):
                     total, posted = self.action()
                     if total + posted == 0:
                         print('Empty list:')
-                    print(self._lang + ': ' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
+                    print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
                     sleep(time)
                 except Exception:
