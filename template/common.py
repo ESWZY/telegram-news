@@ -174,6 +174,9 @@ class NewsPostman(object):
     _table_name = 'news'
     _extractor = InfoExtractor()
 
+    # Cache the list webpage and check if modified
+    _cache_list = None
+
     def __init__(self, listURLs, sendList=[], lang='', headers=None, proxies={}, display_policy=default_policy):
         self._DEBUG = True
         self._listURLs = listURLs
@@ -208,6 +211,12 @@ class NewsPostman(object):
         if res.status_code == 200:
             res.encoding = 'utf-8'
             # print(res.text)
+
+            if res.text == self._cache_list:
+                print('List not Modified')
+                return None
+            else:
+                self._cache_list = res.text
 
             return self._extractor.get_items_policy(res.text, listURL)
         else:
@@ -266,7 +275,12 @@ class NewsPostman(object):
     def action(self):
         nlist = []
         for link in self._listURLs:
-            nlist += self.get_list(link)
+            l = self.get_list(link)
+            if l:
+                nlist += l
+
+        if not nlist:
+            return None, None
 
         nlist.reverse()
         # print(nlist)
@@ -294,8 +308,10 @@ class NewsPostman(object):
             while (True):
                 try:
                     total, posted = self.action()
-                    if total + posted == 0:
-                        print('Empty list:')
+                    if total == None:
+                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified!', end=' ')
+                        print('Wait ' + str(time) + 's to restart!')
+                        continue
                     print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
                     sleep(time)
