@@ -56,6 +56,7 @@ class NewsExtractor(object):
     _paragraph_selector = 'p'
 
     def __init__(self, listURLs, sendList=[], lang='', display_policy=default_policy, headers=None, proxies={}):
+        self._DEBUG = True
         self._listURLs = listURLs
         self._lang = lang
         self._sendList = sendList
