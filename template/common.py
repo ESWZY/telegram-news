@@ -223,7 +223,7 @@ class NewsExtractor(object):
 
         # Must url encode the text
         if self._DEBUG:
-            po += ' #' + str(news_id)
+            po += 'DEBGU #D' + str(news_id)
         po = str_url_encode(po)
 
         res = None
