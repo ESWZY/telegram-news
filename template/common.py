@@ -213,7 +213,7 @@ class NewsPostman(object):
             # print(res.text)
 
             if res.text == self._cache_list:
-                print('List not Modified')
+                # print('List not Modified')
                 return None
             else:
                 self._cache_list = res.text
