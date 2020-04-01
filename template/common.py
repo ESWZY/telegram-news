@@ -97,85 +97,44 @@ class NewsExtractor(object):
     def set_table_name(self, table_name):
         self._table_name = table_name
 
-    def get_list(self, listURL):
-        res = requests.get(listURL, headers=self._headers)
-        # print(res.text)
-        if res.status_code == 200:
-            res.encoding = 'utf-8'
-            # print(res.text)
+    def set_extractor(self, extractor):
+        self._extractor = extractor
 
-            news_list = []
+    def get_items_policy(self, text, listURL):
+        """Get all items in the list webpage"""
+        soup = BeautifulSoup(text, 'lxml')
+        data = soup.select(self._list_selector)
+        # print(data)
 
-            soup = BeautifulSoup(res.text, 'lxml')
-            data = soup.select(self._list_selector)
-            # print(data)
+        news_list = []
+        for item in data:
+            link = get_full_link(item.get('href'), listURL)
 
-            for item in data:
-                link = get_full_link(item.get('href'), listURL)
+            result = {
+                "title": item.get_text(),
+                "link": link,
+                'ID': self._id_policy(link)
+            }
+            news_list.append(result)
+        return news_list
 
-                result = {
-                    "title": item.get_text(),
-                    "link": link,
-                    'ID': self._id_policy(link)
-                }
-                news_list.append(result)
-
-            return news_list
-        else:
-            print('List URL error exception! ' + str(res.status_code))
-            if res.status_code == 403:
-                print('May be your header did not work.')
-            return []
-
-    def get_full(self, url, item):
-        res = requests.get(url, headers=self._headers)
-        res.encoding = 'utf-8'
-        # print(res.text)
-        time = ''
-        source = ''
-        title = ''
-
-        soup = BeautifulSoup(res.text, 'lxml')
-
-        # Get release time and source
-        time_select = soup.select(self._time_selector)
-        try:
-            for text in time_select:
-                time = text.getText().strip()
-                time = time.split('丨')[0]
-                if time:
-                    break
-            time = time.split('\n')[0]
-            time = time.split('	')[0]
-            #print(time)
-
-            # If time is too long, maybe get irrelevant  info
-            if len(time) > 100:
-                time = ''
-        except IndexError:  # Do not have this element because of missing/403/others
-            time = ""
-
-        source_select = soup.select(self._source_selector)
-        try:
-            source = keep_link(source_select[0].getText(), url).strip().replace('\n', '')
-        except IndexError:  # Do not have this element because of missing/403/others
-            source = ""
-
-        # Get news title
+    def get_title_policy(self, text, item):
+        """Get news title"""
+        soup = BeautifulSoup(text, 'lxml')
         title_select = soup.select(self._title_selector)
         try:
-            title = title_select[0].getText().strip()
+            return title_select[0].getText().strip()
         except IndexError:  # Do not have this element because of missing/403/others
-            title = item['title']
+            # But the list have a title
+            return item['title']
 
-        # Get news body
-        # Two select ways:
-        # Mobile news page: '.main-article > p'
-        # Insatnce news page: '#p-detail > p'
+    def get_paragraphs_policy(self, text, item):
+        """Get news body"""
+        soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
-        # return paragraph_select
         # print(paragraph_select)
 
+        url = item['link']
         paragraphs = ""
         blank_flag = False
         for p in paragraph_select:
@@ -194,6 +153,65 @@ class NewsExtractor(object):
         if paragraphs and paragraphs[-1] == ' ':
             paragraphs += '\n\n'
         # print(paragraphs)
+
+        return paragraphs
+
+    def get_time_policy(self, text, item):
+        """Get news release time"""
+        soup = BeautifulSoup(text, 'lxml')
+        time_select = soup.select(self._time_selector)
+        try:
+            for text in time_select:
+                time = text.getText().strip()
+                time = time.split('丨')[0]
+                if time:
+                    break
+            time = time.split('\n')[0]
+            time = time.split('	')[0]
+            #print(time)
+
+            # If time is too long, maybe get irrelevant  info
+            if len(time) > 100:
+                time = ''
+        except IndexError:  # Do not have this element because of missing/403/others
+            time = ""
+        return time
+
+    def get_source_policy(self, text, item):
+
+        soup = BeautifulSoup(text, 'lxml')
+        source_select = soup.select(self._source_selector)
+        url = item['link']
+        try:
+            # Maybe source is a link
+            source = keep_link(source_select[0].getText(), url).strip().replace('\n', '')
+        except IndexError:  # Do not have this element because of missing/403/others
+            source = ""
+        return source
+
+    def get_list(self, listURL):
+        res = requests.get(listURL, headers=self._headers)
+        # print(res.text)
+        if res.status_code == 200:
+            res.encoding = 'utf-8'
+            # print(res.text)
+
+            return self.get_items_policy(res.text, listURL)
+        else:
+            print('List URL error exception! ' + str(res.status_code))
+            if res.status_code == 403:
+                print('May be your header did not work.')
+            return []
+
+    def get_full(self, url, item):
+        res = requests.get(url, headers=self._headers)
+        res.encoding = 'utf-8'
+        # print(res.text)
+
+        title = self.get_title_policy(res.text, item)
+        paragraphs = self.get_paragraphs_policy(res.text, item)
+        time = self.get_time_policy(res.text, item)
+        source = self.get_source_policy(res.text, item)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
@@ -254,6 +272,8 @@ class NewsExtractor(object):
                 # print(item['ID'] + 'Posted!')
         return total, posted
 
+    # TODO: If the time is short, we can shorten the news list
+    #  or cache the list to reduce database access
     def poll(self, time=30):
         def work():
             while (True):
