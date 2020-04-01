@@ -1,16 +1,20 @@
 # -*- coding: UTF-8 -*-
+import json
+import os
+import re
+import threading
 import traceback
+from time import sleep
 
 import requests
 from bs4 import BeautifulSoup
-import re
-from time import sleep
-import os
-import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
-import threading
 
+from displaypolicy import (
+    default_policy,
+    default_id_policy,
+)
 from utils import (
     keep_link,
     str_url_encode,
@@ -18,17 +22,15 @@ from utils import (
     get_full_link,
 )
 
-from displaypolicy import (
-    default_policy,
-    default_id_policy,
-)
-
 
 class InfoExtractor(object):
     _listURLs = []
     _lang = ""
-    _sendList = []
     _id_policy = default_id_policy
+
+    # Maybe cache feature should be implemented at here
+    # Cache the list webpage and check if modified
+    _cached_list_items = None
 
     _list_selector = '.dataList > .clearfix > h3 > a, ' \
                      '.newsList2 > h2 > a, ' \
@@ -47,10 +49,9 @@ class InfoExtractor(object):
 
     _paragraph_selector = 'p'
 
-    def __init__(self, sendList=[], lang=''):
+    def __init__(self, lang=''):
         self._DEBUG = True
         self._lang = lang
-        self._sendList = sendList
 
     def set_list_selector(self, list_selector):
         self._list_selector = list_selector
@@ -70,7 +71,7 @@ class InfoExtractor(object):
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
 
-    def get_items_policy(self, text, listURL):
+    def get_items_policy(self, text, listURL) -> (list, int):
         """Get all items in the list webpage"""
         soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
@@ -86,7 +87,15 @@ class InfoExtractor(object):
                 'ID': self._id_policy(link)
             }
             news_list.append(result)
-        return news_list
+
+        # Hit cache test here
+        # If the list is new, return it.
+        if news_list != self._cached_list_items:
+            self._cached_list_items = news_list
+            return news_list, len(news_list)
+        else:
+            # print('List is not modified!', end=' ')
+            return None, len(news_list)
 
     def get_title_policy(self, text, item):
         """Get news title"""
@@ -165,8 +174,8 @@ class NewsPostman(object):
     _listURLs = []
     _lang = ""
     _sendList = []
-    _headers = {}
-    _proxies = {}
+    _headers = None
+    _proxies = None
     _display_policy = default_policy
     _TOKEN = os.getenv("TOKEN")
     _DATABASE_URL = os.getenv("DATABASE_URL")
@@ -175,9 +184,9 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
-    _cache_list = None
+    _cache_list = {}
 
-    def __init__(self, listURLs, sendList=[], lang='', headers=None, proxies={}, display_policy=default_policy):
+    def __init__(self, listURLs, sendList, lang='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = True
         self._listURLs = listURLs
         self._lang = lang
@@ -205,25 +214,19 @@ class NewsPostman(object):
     def set_extractor(self, extractor):
         self._extractor = extractor
 
-    def get_list(self, listURL):
+    def get_list(self, listURL) -> (list, int):
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
         if res.status_code == 200:
             res.encoding = 'utf-8'
             # print(res.text)
 
-            if res.text == self._cache_list:
-                # print('List not Modified')
-                return None
-            else:
-                self._cache_list = res.text
-
             return self._extractor.get_items_policy(res.text, listURL)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
                 print('May be your header did not work.')
-            return []
+            return [], 0
 
     def get_full(self, url, item):
         res = requests.get(url, headers=self._headers)
@@ -244,7 +247,7 @@ class NewsPostman(object):
 
         # Must url encode the text
         if self._DEBUG:
-            po += ' DEBGU #D' + str(news_id)
+            po += ' DEBUG #D' + str(news_id)
         po = str_url_encode(po)
 
         res = None
@@ -274,19 +277,27 @@ class NewsPostman(object):
 
     def action(self):
         nlist = []
+        total = 0
         for link in self._listURLs:
-            l = self.get_list(link)
+            l, num = self.get_list(link)
+            total += num
             if l:
                 nlist += l
 
         if not nlist:
-            return None, None
+            return None, total
 
-        nlist.reverse()
-        # print(nlist)
+        # Hit cache test here
+        list_set = {str(i) for i in nlist}
+        if list_set != self._cache_list:
+            self._cache_list = list_set
+        else:
+            # print('List set is cached!')
+            return None, len(nlist)
 
         total = 0
         posted = 0
+        nlist.reverse()
         for item in nlist:
             if not self.is_posted(item['ID']):
                 message = self.get_full(item['link'], item=item)
@@ -309,11 +320,11 @@ class NewsPostman(object):
                 try:
                     total, posted = self.action()
                     if total == None:
-                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified!', end=' ')
+                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(posted) + ' posted.', end=' ')
                         print('Wait ' + str(time) + 's to restart!')
                         sleep(time)
                         continue
-                    print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
+                    print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
                     sleep(time)
                 except Exception:
@@ -329,7 +340,7 @@ class NewsPostmanJSON(NewsPostman):
     def __init__(self, listURLs, sendList, lang='', display_policy=default_policy):
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
 
-    def get_list(self, listURL):
+    def get_list(self, listURL) -> (list, int):
         res = requests.get(listURL, headers=self._headers)
         if res.status_code == 200:
             res.encoding = 'utf-8'
@@ -354,10 +365,10 @@ class NewsPostmanJSON(NewsPostman):
                      "Author": item["Author"]}
                 newsList.append(i)
 
-            return newsList
+            return newsList, len(newsList)
         else:
             print('List URL error exception!')
-            return None
+            return None, 0
 
     def get_full(self, url, item=None):
         res = requests.get(url, headers=self._headers)
