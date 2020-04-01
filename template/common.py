@@ -311,6 +311,7 @@ class NewsPostman(object):
                     if total == None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified!', end=' ')
                         print('Wait ' + str(time) + 's to restart!')
+                        sleep(time)
                         continue
                     print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded,' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
