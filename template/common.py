@@ -221,6 +221,8 @@ class NewsExtractor(object):
         po, parse_mode, disable_web_page_preview = self._display_policy(item)
 
         # Must url encode the text
+        if self._DEBUG:
+            po += ' #' + str(news_id)
         po = str_url_encode(po)
 
         res = None
