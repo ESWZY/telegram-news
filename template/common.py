@@ -24,20 +24,12 @@ from displaypolicy import (
 )
 
 
-class NewsExtractor(object):
+class InfoExtractor(object):
     _listURLs = []
     _lang = ""
     _sendList = []
-    _headers = {}
-    _proxies = {}
-    _display_policy = default_policy
     _id_policy = default_id_policy
-    _TOKEN = os.getenv("TOKEN")
-    _DATABASE_URL = os.getenv("DATABASE_URL")
-    _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
-    _table_name = 'news'
 
-    # TODO: compatibility
     _list_selector = '.dataList > .clearfix > h3 > a, ' \
                      '.newsList2 > h2 > a, ' \
                      '.newsList > h2 > a'
@@ -55,20 +47,10 @@ class NewsExtractor(object):
 
     _paragraph_selector = 'p'
 
-    def __init__(self, listURLs, sendList=[], lang='', display_policy=default_policy, headers=None, proxies={}):
+    def __init__(self, sendList=[], lang=''):
         self._DEBUG = True
-        self._listURLs = listURLs
         self._lang = lang
         self._sendList = sendList
-        self._display_policy = display_policy
-
-        if headers:
-            self._headers = headers
-        else:
-            self._headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                              'Chrome/80 Safari/537.36'}
-        self._proxies = proxies
 
     def set_list_selector(self, list_selector):
         self._list_selector = list_selector
@@ -87,19 +69,6 @@ class NewsExtractor(object):
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
-
-    def set_bot_token(self, new_token):
-        self._TOKEN = new_token
-
-    def set_database_url(self, new_db_url):
-        self._DATABASE_URL = new_db_url
-        self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
-
-    def set_table_name(self, table_name):
-        self._table_name = table_name
-
-    def set_extractor(self, extractor):
-        self._extractor = extractor
 
     def get_items_policy(self, text, listURL):
         """Get all items in the list webpage"""
@@ -162,6 +131,7 @@ class NewsExtractor(object):
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         try:
+            time = ''
             for text in time_select:
                 time = text.getText().strip()
                 time = time.split('丨')[0]
@@ -190,6 +160,48 @@ class NewsExtractor(object):
             source = ""
         return source
 
+
+class NewsPostman(object):
+    _listURLs = []
+    _lang = ""
+    _sendList = []
+    _headers = {}
+    _proxies = {}
+    _display_policy = default_policy
+    _TOKEN = os.getenv("TOKEN")
+    _DATABASE_URL = os.getenv("DATABASE_URL")
+    _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
+    _table_name = 'news'
+    _extractor = InfoExtractor()
+
+    def __init__(self, listURLs, sendList=[], lang='', headers=None, proxies={}, display_policy=default_policy):
+        self._DEBUG = True
+        self._listURLs = listURLs
+        self._lang = lang
+        self._sendList = sendList
+        self._display_policy = display_policy
+
+        if headers:
+            self._headers = headers
+        else:
+            self._headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                              'Chrome/80 Safari/537.36'}
+        self._proxies = proxies
+
+    def set_bot_token(self, new_token):
+        self._TOKEN = new_token
+
+    def set_database_url(self, new_db_url):
+        self._DATABASE_URL = new_db_url
+        self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
+
+    def set_table_name(self, table_name):
+        self._table_name = table_name
+
+    def set_extractor(self, extractor):
+        self._extractor = extractor
+
     def get_list(self, listURL):
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
@@ -197,7 +209,7 @@ class NewsExtractor(object):
             res.encoding = 'utf-8'
             # print(res.text)
 
-            return self.get_items_policy(res.text, listURL)
+            return self._extractor.get_items_policy(res.text, listURL)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
@@ -209,10 +221,10 @@ class NewsExtractor(object):
         res.encoding = 'utf-8'
         # print(res.text)
 
-        title = self.get_title_policy(res.text, item)
-        paragraphs = self.get_paragraphs_policy(res.text, item)
-        time = self.get_time_policy(res.text, item)
-        source = self.get_source_policy(res.text, item)
+        title = self._extractor.get_title_policy(res.text, item)
+        paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
+        time = self._extractor.get_time_policy(res.text, item)
+        source = self._extractor.get_source_policy(res.text, item)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
@@ -223,7 +235,7 @@ class NewsExtractor(object):
 
         # Must url encode the text
         if self._DEBUG:
-            po += 'DEBGU #D' + str(news_id)
+            po += ' DEBGU #D' + str(news_id)
         po = str_url_encode(po)
 
         res = None
@@ -237,7 +249,7 @@ class NewsExtractor(object):
                 # Commit changes to database
                 self._db.commit()
             else:
-                print('REEOR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+                print('ERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                 print(res.text)
                 res_time = json.loads(res.text)['parameters']['retry_after']
                 sleep(res_time)
@@ -295,10 +307,10 @@ class NewsExtractor(object):
         t.start()
 
 
-class NewsExtractorJSON(NewsExtractor):
+class NewsPostmanJSON(NewsPostman):
 
     def __init__(self, listURLs, sendList, lang='', display_policy=default_policy):
-        super(NewsExtractorJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
+        super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
 
     def get_list(self, listURL):
         res = requests.get(listURL, headers=self._headers)
@@ -334,30 +346,11 @@ class NewsExtractorJSON(NewsExtractor):
         res = requests.get(url, headers=self._headers)
         res.encoding = 'utf-8'
         # print(res.text)
-        time = ''
-        source = ''
-        title = ''
 
-        soup = BeautifulSoup(res.text, 'lxml')
-
+        title = item['title']
+        paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
         time = item["PubTime"]
         source = item["SourceName"]
-        title = item['title']
-
-        # Get news body
-        # Two select ways:
-        # Mobile news page: '.main-article > p'
-        # Insatnce news page: '#p-detail > p'
-        paragraph_select = soup.select('p')
-        # return paragraph_select
-        # print(paragraph_select)
-
-        paragraphs = ""
-        for p in paragraph_select:
-            link_str = keep_link(str(p), url).strip('\u3000').strip('\n').strip()
-            if link_str != "":
-                paragraphs += link_str + '\n\n'
-        # print(paragraphs)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
