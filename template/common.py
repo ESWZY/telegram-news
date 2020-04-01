@@ -221,7 +221,7 @@ class NewsExtractor(object):
         po, parse_mode, disable_web_page_preview = self._display_policy(item)
 
         # Must url encode the text
-        po = str_url_encode(po)
+        po = str_url_encode(po + ' DEBUG: #D' + str(news_id))
 
         res = None
         for chat_id in self._sendList:
