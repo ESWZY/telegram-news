@@ -1,7 +1,6 @@
 # -*- coding: UTF-8 -*-
 import json
 import os
-import re
 import threading
 import traceback
 from time import sleep
@@ -84,7 +83,7 @@ class InfoExtractor(object):
             result = {
                 "title": item.get_text(),
                 "link": link,
-                'ID': self._id_policy(link)
+                'id': self._id_policy(link)
             }
             news_list.append(result)
 
@@ -169,6 +168,73 @@ class InfoExtractor(object):
             source = ""
         return source
 
+
+class InfoExtractorJSON(InfoExtractor):
+
+    _list_router = 'data->list'
+    _id_router = 'DocID'
+    _link_router = 'LinkUrl'
+    _title_router = 'Title'
+    _time_router = 'PubTime'
+    _source_router = 'SourceName'
+    _author_router = 'Author'
+
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def _get_item_by_route(item, router):
+        root_keys = router.split('->')
+        try:
+            for key in root_keys:
+                if key:
+                    item = item[key]
+        except KeyError:
+            return None
+        return item
+
+    def get_items_policy(self, json_text, listURL) -> (list, int):
+        news_list = []
+        list_json = json
+        try:
+            list_json = json.loads(json_text)
+        except json.decoder.JSONDecodeError:
+            try:
+                list_json = json.loads(json_text[1:-2])  # Remove brackets and load as json
+            except Exception:
+                return None, 0
+
+        list_json = self._get_item_by_route(list_json, self._list_router)
+
+        for i in list_json:
+            item = dict()
+            item['id'] = self._get_item_by_route(i, self._id_router)
+            item['link'] = get_full_link(self._get_item_by_route(i, self._link_router), listURL)
+            item['title'] = self._get_item_by_route(i, self._title_router)
+            item["time"] = self._get_item_by_route(i, self._time_router)
+            item["source"] = self._get_item_by_route(i, self._source_router)
+            item["author"] = self._get_item_by_route(i, self._author_router)
+            news_list.append(item)
+
+        return news_list, len(news_list)
+
+    def get_title_policy(self, text, item):
+        if item['title']:
+            return item['title']
+        return None
+
+    def get_paragraphs_policy(self, text, item):
+        return super(InfoExtractorJSON, self).get_paragraphs_policy(text, item)
+
+    def get_time_policy(self, text, item):
+        if item['time']:
+            return item['time']
+        return None
+
+    def get_source_policy(self, text, item):
+        if item['source']:
+            return item['source']
+        return None
 
 class NewsPostman(object):
     _listURLs = []
@@ -299,17 +365,17 @@ class NewsPostman(object):
         posted = 0
         nlist.reverse()
         for item in nlist:
-            if not self.is_posted(item['ID']):
+            if not self.is_posted(item['id']):
                 message = self.get_full(item['link'], item=item)
                 # print(message)
 
                 # Post the message by api
-                res = self.post(message, item['ID'])
-                print(str(item['ID']) + " " + str(res.status_code))
+                res = self.post(message, item['id'])
+                print(str(item['id']) + " " + str(res.status_code))
                 total += 1
             else:
                 posted += 1
-                # print(item['ID'] + 'Posted!')
+                # print(item['id'] + 'Posted!')
         return total, posted
 
     # TODO: If the time is short, we can shorten the news list
@@ -339,33 +405,14 @@ class NewsPostmanJSON(NewsPostman):
 
     def __init__(self, listURLs, sendList, lang='', display_policy=default_policy):
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
+        self._extractor = InfoExtractorJSON()
 
     def get_list(self, listURL) -> (list, int):
         res = requests.get(listURL, headers=self._headers)
         if res.status_code == 200:
             res.encoding = 'utf-8'
             # print(res.text)
-
-            newsList = []
-            list_json = None
-            try:
-                list_json = json.loads(res.text)
-            except json.decoder.JSONDecodeError:
-                try:
-                    list_json = json.loads(res.text[1:-2])  # Remove brackets and load as json
-                except Exception:
-                    pass
-
-            for item in list_json['data']['list']:
-                i = {'ID': item['DocID'],
-                     'link': item['LinkUrl'],
-                     'title': item['Title'],
-                     "PubTime": item["PubTime"],
-                     "SourceName": item["SourceName"],
-                     "Author": item["Author"]}
-                newsList.append(i)
-
-            return newsList, len(newsList)
+            return self._extractor.get_items_policy(res.text, listURL)
         else:
             print('List URL error exception!')
             return None, 0
@@ -375,10 +422,10 @@ class NewsPostmanJSON(NewsPostman):
         res.encoding = 'utf-8'
         # print(res.text)
 
-        title = item['title']
+        title = self._extractor.get_title_policy(res.text, item)
         paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
-        time = item["PubTime"]
-        source = item["SourceName"]
+        time = self._extractor.get_time_policy(res.text, item)
+        source = self._extractor.get_source_policy(res.status_code, item)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
