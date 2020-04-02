@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import json
+import math
 import os
 import threading
 import traceback
@@ -252,6 +253,7 @@ class InfoExtractorJSON(InfoExtractor):
             return item['source']
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
 
+
 class NewsPostman(object):
     _listURLs = []
     _lang = ""
@@ -263,6 +265,7 @@ class NewsPostman(object):
     _DATABASE_URL = os.getenv("DATABASE_URL")
     _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
     _table_name = 'news'
+    _max_table_rows = math.inf
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
@@ -290,8 +293,38 @@ class NewsPostman(object):
         self._DATABASE_URL = new_db_url
         self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
 
-    def set_table_name(self, table_name):
-        self._table_name = table_name
+    def set_table_name(self, new_table_name):
+        self._table_name = new_table_name
+        rows = self._db.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{0}'".format(new_table_name))
+        if rows.fetchone()[0] == 1:
+            print('Set table name \"' + new_table_name +'\" successfully, table already exists!')
+            return False
+        else:
+            f = open("table.sql")
+            lines = f.read()
+            lines = lines.replace(' ' + 'news' + ' ', ' ' + new_table_name + ' ')
+            print('New table name \"' + new_table_name + '\" is settable, setting...', end=' ')
+            rows = self._db.execute(lines)
+            self._db.commit()
+            print('Create table finished!')
+            return True
+
+    def set_max_table_rows(self, num, verbose=True):
+        if verbose:
+            print('Waring, the max_table_rows must at least 3 TIMES than the real list length!')
+        self._max_table_rows = num
+
+    def _clean_database(self):
+        rows = self._db.execute("SELECT COUNT(*) FROM " + self._table_name + ";")
+        # If the items in database exceed 2 of 3 of max rows, begin to delete old 1 of 3 of max rows
+        rows_num = rows.fetchone()[0]
+        print("rows: ", rows_num)
+        if rows_num > 2 * ((self._max_table_rows - 3) / 3):
+            delete_how_many = int(self._max_table_rows / 3)
+            print('delete ', delete_how_many)
+            self._db.execute("DELETE FROM " + self._table_name + " WHERE id IN ( SELECT id FROM " + self._table_name + " ORDER BY id ASC LIMIT " + str(delete_how_many) + ")")
+            self._db.commit()
+            print('Clean database finished!')
 
     def set_extractor(self, extractor):
         self._extractor = extractor
@@ -351,7 +384,7 @@ class NewsPostman(object):
 
     def is_posted(self, news_id):
         rows = self._db.execute("SELECT * FROM " + self._table_name + " WHERE news_id = :news_id",
-                                {"news_id": news_id})
+                                {"news_id": str(news_id)})
         if rows.rowcount == 0:
             return False
         else:
@@ -404,10 +437,12 @@ class NewsPostman(object):
                     if total == None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(posted) + ' posted.', end=' ')
                         print('Wait ' + str(time) + 's to restart!')
+                        self._clean_database()
                         sleep(time)
                         continue
                     print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
+                    self._clean_database()
                     sleep(time)
                 except Exception:
                     traceback.print_exc()
