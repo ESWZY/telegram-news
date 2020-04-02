@@ -318,7 +318,8 @@ class NewsPostman(object):
         rows = self._db.execute("SELECT COUNT(*) FROM " + self._table_name + ";")
         # If the items in database exceed 2 of 3 of max rows, begin to delete old 1 of 3 of max rows
         rows_num = rows.fetchone()[0]
-        print("rows: ", rows_num)
+        # print("rows: ", rows_num)
+
         if rows_num > 2 * ((self._max_table_rows - 3) / 3):
             delete_how_many = int(self._max_table_rows / 3)
             print('delete ', delete_how_many)
@@ -427,8 +428,6 @@ class NewsPostman(object):
                 # print(item['id'] + 'Posted!')
         return total, posted
 
-    # TODO: If the time is short, we can shorten the news list
-    #  or cache the list to reduce database access
     def poll(self, time=30):
         def work():
             while (True):
@@ -437,7 +436,8 @@ class NewsPostman(object):
                     if total == None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(posted) + ' posted.', end=' ')
                         print('Wait ' + str(time) + 's to restart!')
-                        self._clean_database()
+                        # If the list is not modified, we don't need to clean database
+                        # self._clean_database()
                         sleep(time)
                         continue
                     print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(posted) + ' posted.', end=' ')
@@ -446,7 +446,7 @@ class NewsPostman(object):
                     sleep(time)
                 except Exception:
                     traceback.print_exc()
-                    sleep(1)
+                    sleep(time)
 
         t = threading.Thread(target=work)
         t.start()
