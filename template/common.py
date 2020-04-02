@@ -52,20 +52,20 @@ class InfoExtractor(object):
         self._DEBUG = True
         self._lang = lang
 
-    def set_list_selector(self, list_selector):
-        self._list_selector = list_selector
+    def set_list_selector(self, selector):
+        self._list_selector = selector
 
-    def set_time_selector(self, time_selector):
-        self._time_selector = time_selector
+    def set_time_selector(self, selector):
+        self._time_selector = selector
 
-    def set_title_selector(self, title_selector):
-        self._title_selector = title_selector
+    def set_title_selector(self, selector):
+        self._title_selector = selector
 
-    def set_source_selector(self, source_selector):
-        self._source_selector = source_selector
+    def set_source_selector(self, selector):
+        self._source_selector = selector
 
-    def set_paragraph_selector(self, paragraph_selector):
-        self._paragraph_selector = paragraph_selector
+    def set_paragraph_selector(self, selector):
+        self._paragraph_selector = selector
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
@@ -163,7 +163,7 @@ class InfoExtractor(object):
         url = item['link']
         try:
             # Maybe source is a link
-            source = keep_link(source_select[0].getText(), url).strip().replace('\n', '')
+            source = keep_link(str(source_select[0]), url).strip().replace('\n', '')
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
         return source
@@ -177,7 +177,6 @@ class InfoExtractorJSON(InfoExtractor):
     _title_router = 'Title'
     _time_router = 'PubTime'
     _source_router = 'SourceName'
-    _author_router = 'Author'
 
     def __init__(self):
         super().__init__()
@@ -192,6 +191,24 @@ class InfoExtractorJSON(InfoExtractor):
         except KeyError:
             return None
         return item
+
+    def set_list_router(self, router):
+        self._list_router = router
+
+    def set_id_router(self, router):
+        self._id_router = router
+
+    def set_link_router(self, router):
+        self._link_router = router
+
+    def set_title_router(self, router):
+        self._title_router = router
+
+    def set_time_router(self, router):
+        self._time_router = router
+
+    def set_source_router(self, router):
+        self._source_router = router
 
     def get_items_policy(self, json_text, listURL) -> (list, int):
         news_list = []
@@ -213,15 +230,14 @@ class InfoExtractorJSON(InfoExtractor):
             item['title'] = self._get_item_by_route(i, self._title_router)
             item["time"] = self._get_item_by_route(i, self._time_router)
             item["source"] = self._get_item_by_route(i, self._source_router)
-            item["author"] = self._get_item_by_route(i, self._author_router)
             news_list.append(item)
 
         return news_list, len(news_list)
 
     def get_title_policy(self, text, item):
         if item['title']:
-            return item['title']
-        return None
+            return item['title'].replace('&nbsp;',' ')
+        return super(InfoExtractorJSON, self).get_title_policy(text, item)
 
     def get_paragraphs_policy(self, text, item):
         return super(InfoExtractorJSON, self).get_paragraphs_policy(text, item)
@@ -229,12 +245,12 @@ class InfoExtractorJSON(InfoExtractor):
     def get_time_policy(self, text, item):
         if item['time']:
             return item['time']
-        return None
+        return super(InfoExtractorJSON, self).get_time_policy(text, item)
 
     def get_source_policy(self, text, item):
         if item['source']:
             return item['source']
-        return None
+        return super(InfoExtractorJSON, self).get_source_policy(text, item)
 
 class NewsPostman(object):
     _listURLs = []
@@ -313,7 +329,7 @@ class NewsPostman(object):
 
         # Must url encode the text
         if self._DEBUG:
-            po += ' DEBUG #D' + str(news_id)
+            po += '\nDEBUG #D' + str(news_id)
         po = str_url_encode(po)
 
         res = None
@@ -425,7 +441,7 @@ class NewsPostmanJSON(NewsPostman):
         title = self._extractor.get_title_policy(res.text, item)
         paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
         time = self._extractor.get_time_policy(res.text, item)
-        source = self._extractor.get_source_policy(res.status_code, item)
+        source = self._extractor.get_source_policy(res.text, item)
 
         return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
