@@ -418,34 +418,40 @@ class NewsPostman(object):
             return True
 
     def action(self):
-        nlist = []
+        duplicate_list = []
         total = 0
         for link in self._listURLs:
             l, num = self.get_list(link)
             total += num
             if l:
-                nlist += l
+                duplicate_list += l
 
-        if not nlist:
+        if not duplicate_list:
             return None, total
 
         # Hit cache test here
-        list_set = {str(i) for i in nlist}
+        list_set = {str(i) for i in duplicate_list}
         if list_set != self._cache_list:
             self._cache_list = list_set
         else:
             # print('List set is cached!')
-            return None, len(nlist)
+            return None, len(duplicate_list)
+
+        # Remain the UNIQUE one from oldest to newest
+        unique_list= []
+        duplicate_list.reverse()
+        for item in duplicate_list:
+            if item not in unique_list:
+                unique_list.append(item)
 
         total = 0
         posted = 0
 
         # Select top item_mun items
-        item_mun = min(self._max_list_length, len(nlist))
+        item_mun = min(self._max_list_length, len(unique_list))
         print(item_mun)
-        nlist = nlist[:item_mun]
-        nlist.reverse()
-        for item in nlist:
+        unique_list = unique_list[-item_mun:]
+        for item in unique_list:
             if not self.is_posted(item['id']):
                 message = self.get_full(item['link'], item=item)
                 # print(message)
