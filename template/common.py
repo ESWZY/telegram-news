@@ -271,6 +271,7 @@ class NewsPostman(object):
     _full_request_response_encode = 'utf-8'
     _full_request_timeout = 10
     _full_request_timeout_random_offset = 0
+    _max_list_length = math.inf
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
@@ -342,6 +343,9 @@ class NewsPostman(object):
         self._full_request_timeout = timeout
         self._full_request_timeout_random_offset = random
 
+    def set_max_list_length(self, max):
+        self._max_list_length = max
+
     def set_extractor(self, extractor):
         self._extractor = extractor
 
@@ -395,8 +399,11 @@ class NewsPostman(object):
             else:
                 print('ERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                 print(res.text)
-                res_time = json.loads(res.text)['parameters']['retry_after']
-                sleep(res_time)
+                try:
+                    res_time = json.loads(res.text)['parameters']['retry_after']
+                    sleep(res_time)
+                except KeyError:
+                    raise Exception
         return res
 
     def is_posted(self, news_id):
@@ -429,6 +436,11 @@ class NewsPostman(object):
 
         total = 0
         posted = 0
+
+        # Select top item_mun items
+        item_mun = min(self._max_list_length, len(nlist))
+        print(item_mun)
+        nlist = nlist[:item_mun]
         nlist.reverse()
         for item in nlist:
             if not self.is_posted(item['id']):
