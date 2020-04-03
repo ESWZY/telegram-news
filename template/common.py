@@ -2,6 +2,7 @@
 import json
 import math
 import os
+import random
 import threading
 import traceback
 from time import sleep
@@ -266,6 +267,10 @@ class NewsPostman(object):
     _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
     _table_name = 'news'
     _max_table_rows = math.inf
+    _list_request_response_encode = 'utf-8'
+    _full_request_response_encode = 'utf-8'
+    _full_request_timeout = 10
+    _full_request_timeout_random_offset = 0
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
@@ -327,6 +332,16 @@ class NewsPostman(object):
             self._db.commit()
             print('Clean database finished!')
 
+    def set_list_encoding(self, encode):
+        self._list_request_response_encode = encode
+
+    def set_full_encoding(self, encode):
+        self._full_request_response_encode = encode
+
+    def set_full_request_timeout(self, timeout, random=0):
+        self._full_request_timeout = timeout
+        self._full_request_timeout_random_offset = random
+
     def set_extractor(self, extractor):
         self._extractor = extractor
 
@@ -334,7 +349,7 @@ class NewsPostman(object):
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
         if res.status_code == 200:
-            res.encoding = 'utf-8'
+            res.encoding = self._list_request_response_encode
             # print(res.text)
 
             return self._extractor.get_items_policy(res.text, listURL)
@@ -345,8 +360,9 @@ class NewsPostman(object):
             return [], 0
 
     def get_full(self, url, item):
-        res = requests.get(url, headers=self._headers)
-        res.encoding = 'utf-8'
+        timeout = self._full_request_timeout + random.randint(0,self._full_request_timeout_random_offset)
+        res = requests.get(url, headers=self._headers, timeout=timeout)
+        res.encoding = self._full_request_response_encode
         # print(res.text)
 
         title = self._extractor.get_title_policy(res.text, item)
@@ -461,7 +477,7 @@ class NewsPostmanJSON(NewsPostman):
     def get_list(self, listURL) -> (list, int):
         res = requests.get(listURL, headers=self._headers)
         if res.status_code == 200:
-            res.encoding = 'utf-8'
+            res.encoding = self._list_request_response_encode
             # print(res.text)
             return self._extractor.get_items_policy(res.text, listURL)
         else:
@@ -469,8 +485,9 @@ class NewsPostmanJSON(NewsPostman):
             return None, 0
 
     def get_full(self, url, item=None):
-        res = requests.get(url, headers=self._headers)
-        res.encoding = 'utf-8'
+        timeout = self._full_request_timeout + random.randint(0, self._full_request_timeout_random_offset)
+        res = requests.get(url, headers=self._headers, timeout=timeout)
+        res.encoding = self._full_request_response_encode
         # print(res.text)
 
         title = self._extractor.get_title_policy(res.text, item)
