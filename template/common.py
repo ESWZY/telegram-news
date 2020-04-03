@@ -317,7 +317,7 @@ class NewsPostman(object):
 
     def set_max_table_rows(self, num, verbose=True):
         if verbose:
-            print('Waring, the max_table_rows must at least 3 TIMES than the real list length!')
+            print('Warning, the max_table_rows must at least 3 TIMES than the real list length!')
         self._max_table_rows = num
 
     def _clean_database(self):
@@ -397,6 +397,9 @@ class NewsPostman(object):
                 # Commit changes to database
                 self._db.commit()
             else:
+                # Clear cache when not post
+                self._cache_list = None
+
                 print('ERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                 print(res.text)
                 try:
@@ -473,6 +476,8 @@ class NewsPostman(object):
                     self._clean_database()
                     sleep(time)
                 except Exception:
+                    # Clear cache when any error
+                    self._cache_list = None
                     traceback.print_exc()
                     sleep(time)
 
