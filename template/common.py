@@ -365,7 +365,8 @@ class NewsPostman(object):
             return [], 0
 
     def get_full(self, url, item):
-        timeout = self._full_request_timeout + random.randint(0,self._full_request_timeout_random_offset)
+        timeout = self._full_request_timeout + random.randint(-self._full_request_timeout_random_offset,
+                                                              self._full_request_timeout_random_offset)
         res = requests.get(url, headers=self._headers, timeout=timeout)
         res.encoding = self._full_request_response_encode
         # print(res.text)
@@ -497,29 +498,6 @@ class NewsPostmanJSON(NewsPostman):
     def __init__(self, listURLs, sendList, lang='', display_policy=default_policy):
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
         self._extractor = InfoExtractorJSON()
-
-    def get_list(self, listURL) -> (list, int):
-        res = requests.get(listURL, headers=self._headers)
-        if res.status_code == 200:
-            res.encoding = self._list_request_response_encode
-            # print(res.text)
-            return self._extractor.get_items_policy(res.text, listURL)
-        else:
-            print('List URL error exception!')
-            return None, 0
-
-    def get_full(self, url, item=None):
-        timeout = self._full_request_timeout + random.randint(0, self._full_request_timeout_random_offset)
-        res = requests.get(url, headers=self._headers, timeout=timeout)
-        res.encoding = self._full_request_response_encode
-        # print(res.text)
-
-        title = self._extractor.get_title_policy(res.text, item)
-        paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
-        time = self._extractor.get_time_policy(res.text, item)
-        source = self._extractor.get_source_policy(res.text, item)
-
-        return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
 
 print("DELETED!!")
