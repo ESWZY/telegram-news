@@ -149,7 +149,7 @@ class InfoExtractor(object):
                     break
             time = time.split('\n')[0]
             time = time.split('	')[0]
-            #print(time)
+            # print(time)
 
             # If time is too long, maybe get irrelevant  info
             if len(time) > 100:
@@ -172,7 +172,6 @@ class InfoExtractor(object):
 
 
 class InfoExtractorJSON(InfoExtractor):
-
     _list_router = 'data->list'
     _id_router = 'DocID'
     _link_router = 'LinkUrl'
@@ -214,7 +213,7 @@ class InfoExtractorJSON(InfoExtractor):
 
     def get_items_policy(self, json_text, listURL) -> (list, int):
         news_list = []
-        list_json = json
+        # list_json = json
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
@@ -238,7 +237,7 @@ class InfoExtractorJSON(InfoExtractor):
 
     def get_title_policy(self, text, item):
         if item['title']:
-            return item['title'].replace('&nbsp;',' ')
+            return item['title'].replace('&nbsp;', ' ')
         return super(InfoExtractorJSON, self).get_title_policy(text, item)
 
     def get_paragraphs_policy(self, text, item):
@@ -301,16 +300,17 @@ class NewsPostman(object):
 
     def set_table_name(self, new_table_name):
         self._table_name = new_table_name
-        rows = self._db.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{0}'".format(new_table_name))
+        rows = self._db.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{0}'".format(new_table_name))
         if rows.fetchone()[0] == 1:
-            print('Set table name \"' + new_table_name +'\" successfully, table already exists!')
+            print('Set table name \"' + new_table_name + '\" successfully, table already exists!')
             return False
         else:
             f = open("table.sql")
             lines = f.read()
             lines = lines.replace(' ' + 'news' + ' ', ' ' + new_table_name + ' ')
             print('New table name \"' + new_table_name + '\" is settable, setting...', end=' ')
-            rows = self._db.execute(lines)
+            self._db.execute(lines)
             self._db.commit()
             print('Create table finished!')
             return True
@@ -329,7 +329,9 @@ class NewsPostman(object):
         if rows_num > 2 * ((self._max_table_rows - 3) / 3):
             delete_how_many = int(self._max_table_rows / 3)
             print('delete ', delete_how_many)
-            self._db.execute("DELETE FROM " + self._table_name + " WHERE id IN ( SELECT id FROM " + self._table_name + " ORDER BY id ASC LIMIT " + str(delete_how_many) + ")")
+            self._db.execute(
+                "DELETE FROM " + self._table_name + " WHERE id IN ( SELECT id FROM " + self._table_name +
+                " ORDER BY id ASC LIMIT " + str(delete_how_many) + ")")
             self._db.commit()
             print('Clean database finished!')
 
@@ -339,18 +341,18 @@ class NewsPostman(object):
     def set_full_encoding(self, encode):
         self._full_request_response_encode = encode
 
-    def set_full_request_timeout(self, timeout, random=0):
+    def set_full_request_timeout(self, timeout, random_offset=0):
         self._full_request_timeout = timeout
-        self._full_request_timeout_random_offset = random
+        self._full_request_timeout_random_offset = random_offset
 
-    def set_max_list_length(self, max):
-        self._max_list_length = max
+    def set_max_list_length(self, max_list_length):
+        self._max_list_length = max_list_length
 
     def set_extractor(self, extractor):
         self._extractor = extractor
 
     def get_list(self, listURL) -> (list, int):
-        # TODO: For all requset, set a timeout
+        # TODO: For all requests, set a timeout
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
         if res.status_code == 200:
@@ -391,7 +393,8 @@ class NewsPostman(object):
         res = None
         for chat_id in self._sendList:
             # https://core.telegram.org/bots/api#sendmessage
-            post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+            post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + \
+                       po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
             res = requests.get(post_url, proxies=self._proxies)
             if res.status_code == 200:
                 self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
@@ -440,7 +443,7 @@ class NewsPostman(object):
             return None, len(duplicate_list)
 
         # Remain the UNIQUE one from oldest to newest
-        unique_list= []
+        unique_list = []
         duplicate_list.reverse()
         for item in duplicate_list:
             if item not in unique_list:
@@ -469,17 +472,19 @@ class NewsPostman(object):
 
     def poll(self, time=30):
         def work():
-            while (True):
+            while True:
                 try:
                     total, posted = self.action()
-                    if total == None:
-                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(posted) + ' posted.', end=' ')
+                    if total is None:
+                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(
+                            posted) + ' posted.', end=' ')
                         print('Wait ' + str(time) + 's to restart!')
                         # If the list is not modified, we don't need to clean database
                         # self._clean_database()
                         sleep(time)
                         continue
-                    print(self._lang + ':' + ' '*(6-len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(posted) + ' posted.', end=' ')
+                    print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(
+                        posted) + ' posted.', end=' ')
                     print('Wait ' + str(time) + 's to restart!')
                     self._clean_database()
                     sleep(time)
