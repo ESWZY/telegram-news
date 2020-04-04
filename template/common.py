@@ -235,7 +235,14 @@ class InfoExtractorJSON(InfoExtractor):
             item["source"] = self._get_item_by_route(i, self._source_router)
             news_list.append(item)
 
-        return news_list, len(news_list)
+        # Hit cache test here
+        # If the list is new, return it.
+        if news_list != self._cached_list_items:
+            self._cached_list_items = news_list
+            return news_list, len(news_list)
+        else:
+            # print('List is not modified!', end=' ')
+            return None, len(news_list)
 
     def get_title_policy(self, text, item):
         if item['title']:
@@ -497,8 +504,8 @@ class NewsPostman(object):
                 try:
                     total, posted = self._action()
                     if total is None:
-                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(
-                            posted) + ' posted.', end=' ')
+                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' +
+                              str(min(posted, self._max_list_length)) + ' posted.', end=' ')
                         print('Wait ' + str(sleep_time) + 's to restart!')
                         # If the list is not modified, we don't need to clean database
                         # self._clean_database()
