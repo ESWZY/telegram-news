@@ -22,6 +22,7 @@ from utils import (
     str_url_encode,
     is_single_media,
     get_full_link,
+    add_parameters_into_url,
 )
 
 
@@ -364,8 +365,7 @@ class NewsPostman(object):
 
     def _get_request_url(self, pure_url):
         if self._parameter:
-            # TODO: https://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python
-            return pure_url + self._parameter.get_parameters(pure_url)
+            return self._parameter.get_parameters(url=pure_url)
         else:
             return pure_url
 

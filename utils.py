@@ -1,6 +1,11 @@
 # -*- coding: UTF-8 -*-
 
-import urllib.parse
+try:
+    import urlparse
+    from urllib import urlencode
+except:  # For Python 3
+    import urllib.parse as urlparse
+    from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 
@@ -105,12 +110,21 @@ def is_single_media(text):
 
 
 def str_url_encode(l):
-    return urllib.parse.quote(l)
+    return urlparse.quote(l)
 
 
 def get_full_link(link, base_url):
     """Parse the relative link to absolute link."""
-    return urllib.parse.urljoin(base_url, link)
+    return urlparse.urljoin(base_url, link)
+
+
+def add_parameters_into_url(url, parameters):
+    """The url might already have GET parameters or not. parameters is a dict"""
+    url_parts = list(urlparse.urlparse(url))
+    query = dict(urlparse.parse_qsl(url_parts[4]))
+    query.update(parameters)
+    url_parts[4] = urlencode(query)
+    return urlparse.urlunparse(url_parts)
 
 
 def is_length_immunity(item):
