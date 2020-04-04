@@ -3,7 +3,7 @@
 try:
     import urlparse
     from urllib import urlencode
-except:  # For Python 3
+except ModuleNotFoundError:  # For Python 3
     import urllib.parse as urlparse
     from urllib.parse import urlencode
 

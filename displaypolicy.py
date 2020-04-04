@@ -45,7 +45,7 @@ def default_policy(item):
 
     po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
 
-    po = po.replace('<br>',"")
+    po = po.replace('<br>', "")
 
     assert len(po) < MAXLEN
 
