@@ -4,6 +4,7 @@ import math
 import os
 import random
 import threading
+import time
 import traceback
 from time import sleep
 
@@ -141,22 +142,22 @@ class InfoExtractor(object):
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         try:
-            time = ''
+            publish_time = ''
             for text in time_select:
-                time = text.getText().strip()
-                time = time.split('丨')[0]
-                if time:
+                publish_time = text.getText().strip()
+                publish_time = publish_time.split('丨')[0]
+                if publish_time:
                     break
-            time = time.split('\n')[0]
-            time = time.split('	')[0]
+            publish_time = publish_time.split('\n')[0]
+            publish_time = publish_time.split('	')[0]
             # print(time)
 
             # If time is too long, maybe get irrelevant  info
-            if len(time) > 100:
-                time = ''
+            if len(publish_time) > 100:
+                publish_time = ''
         except IndexError:  # Do not have this element because of missing/403/others
-            time = ""
-        return time
+            publish_time = ""
+        return publish_time
 
     def get_source_policy(self, text, item):
 
@@ -274,6 +275,7 @@ class NewsPostman(object):
     _full_request_timeout_random_offset = 0
     _max_list_length = math.inf
     _extractor = InfoExtractor()
+    _parameter = None
 
     # Cache the list webpage and check if modified
     _cache_list = {}
@@ -357,16 +359,26 @@ class NewsPostman(object):
     def set_extractor(self, extractor):
         self._extractor = extractor
 
-    def get_list(self, listURL) -> (list, int):
+    def set_parameter(self, parameter):
+        self._parameter = parameter
+
+    def _get_request_url(self, pure_url):
+        if self._parameter:
+            # TODO: https://stackoverflow.com/questions/2506379/add-params-to-given-url-in-python
+            return pure_url + self._parameter.get_parameters(pure_url)
+        else:
+            return pure_url
+
+    def get_list(self, list_request_url) -> (list, int):
         timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
                                                               self._list_request_timeout_random_offset)
-        res = requests.get(listURL, headers=self._headers, timeout=timeout)
+        res = requests.get(list_request_url, headers=self._headers, timeout=timeout)
         # print(res.text)
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
             # print(res.text)
 
-            return self._extractor.get_items_policy(res.text, listURL)
+            return self._extractor.get_items_policy(res.text, list_request_url)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
@@ -382,10 +394,10 @@ class NewsPostman(object):
 
         title = self._extractor.get_title_policy(res.text, item)
         paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
-        time = self._extractor.get_time_policy(res.text, item)
+        publish_time = self._extractor.get_time_policy(res.text, item)
         source = self._extractor.get_source_policy(res.text, item)
 
-        return {'title': title, 'time': time, 'source': source, 'paragraphs': paragraphs, 'link': url}
+        return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
     def post(self, item, news_id):
 
@@ -433,7 +445,9 @@ class NewsPostman(object):
         duplicate_list = []
         total = 0
         for link in self._listURLs:
-            l, num = self.get_list(link)
+            list_request_url = self._get_request_url(link)
+            # print(list_request_url)
+            l, num = self.get_list(list_request_url)
             total += num
             if l:
                 duplicate_list += l
@@ -477,7 +491,7 @@ class NewsPostman(object):
                 # print(item['id'] + 'Posted!')
         return total, posted
 
-    def poll(self, time=30):
+    def poll(self, sleep_time=30):
         def work():
             while True:
                 try:
@@ -485,21 +499,21 @@ class NewsPostman(object):
                     if total is None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(
                             posted) + ' posted.', end=' ')
-                        print('Wait ' + str(time) + 's to restart!')
+                        print('Wait ' + str(sleep_time) + 's to restart!')
                         # If the list is not modified, we don't need to clean database
                         # self._clean_database()
-                        sleep(time)
+                        sleep(sleep_time)
                         continue
                     print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(
                         posted) + ' posted.', end=' ')
-                    print('Wait ' + str(time) + 's to restart!')
+                    print('Wait ' + str(sleep_time) + 's to restart!')
                     self._clean_database()
-                    sleep(time)
+                    sleep(sleep_time)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = None
                     traceback.print_exc()
-                    sleep(time)
+                    sleep(sleep_time)
 
         t = threading.Thread(target=work)
         t.start()
