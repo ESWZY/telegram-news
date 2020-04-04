@@ -53,4 +53,4 @@ def default_policy(item):
 
 
 def default_id_policy(self, link):
-    return re.findall('\d+', link)[-1]
+    return re.findall('\\d+', link)[-1]

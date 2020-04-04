@@ -350,6 +350,7 @@ class NewsPostman(object):
         self._extractor = extractor
 
     def get_list(self, listURL) -> (list, int):
+        # TODO: For all requset, set a timeout
         res = requests.get(listURL, headers=self._headers)
         # print(res.text)
         if res.status_code == 200:
