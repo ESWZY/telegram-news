@@ -5,7 +5,7 @@ from utils import (
     is_length_immunity,
 )
 
-MAXLEN: int = 4096
+MAXLEN = 4096
 
 
 def default_policy(item):

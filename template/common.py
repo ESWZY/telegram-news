@@ -74,7 +74,7 @@ class InfoExtractor(object):
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
 
-    def get_items_policy(self, text, listURL) -> (list, int):
+    def get_items_policy(self, text, listURL):
         """Get all items in the list webpage"""
         soup = BeautifulSoup(text, 'html.parser')
         data = soup.select(self._list_selector)
@@ -213,7 +213,7 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
-    def get_items_policy(self, json_text, listURL) -> (list, int):
+    def get_items_policy(self, json_text, listURL):     # -> (list, int)
         news_list = []
         # list_json = json
         try:
@@ -376,7 +376,7 @@ class NewsPostman(object):
         else:
             return pure_url
 
-    def _get_list(self, list_request_url) -> (list, int):
+    def _get_list(self, list_request_url):     # -> (list, int)
         timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
                                                               self._list_request_timeout_random_offset)
         res = requests.get(list_request_url, headers=self._headers, timeout=timeout)
@@ -448,7 +448,7 @@ class NewsPostman(object):
         else:
             return True
 
-    def _action(self):
+    def _action(self):     # -> (list, int)
         duplicate_list = []
         total = 0
         for link in self._listURLs:
