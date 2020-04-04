@@ -267,6 +267,8 @@ class NewsPostman(object):
     _table_name = 'news'
     _max_table_rows = math.inf
     _list_request_response_encode = 'utf-8'
+    _list_request_timeout = 10
+    _list_request_timeout_random_offset = 0
     _full_request_response_encode = 'utf-8'
     _full_request_timeout = 10
     _full_request_timeout_random_offset = 0
@@ -341,9 +343,13 @@ class NewsPostman(object):
     def set_full_encoding(self, encode):
         self._full_request_response_encode = encode
 
-    def set_full_request_timeout(self, timeout, random_offset=0):
+    def set_full_request_timeout(self, timeout=10, random_offset=0):
         self._full_request_timeout = timeout
         self._full_request_timeout_random_offset = random_offset
+
+    def set_list_request_timeout(self, timeout=10, random_offset=0):
+        self._list_request_timeout = timeout
+        self._list_request_timeout_random_offset = random_offset
 
     def set_max_list_length(self, max_list_length):
         self._max_list_length = max_list_length
@@ -352,8 +358,9 @@ class NewsPostman(object):
         self._extractor = extractor
 
     def get_list(self, listURL) -> (list, int):
-        # TODO: For all requests, set a timeout
-        res = requests.get(listURL, headers=self._headers)
+        timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
+                                                              self._list_request_timeout_random_offset)
+        res = requests.get(listURL, headers=self._headers, timeout=timeout)
         # print(res.text)
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
