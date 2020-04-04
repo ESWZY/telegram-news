@@ -505,15 +505,14 @@ class NewsPostman(object):
                     total, posted = self._action()
                     if total is None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' +
-                              str(min(posted, self._max_list_length)) + ' posted.', end=' ')
-                        print('Wait ' + str(sleep_time) + 's to restart!')
+                              str(min(posted, self._max_list_length)) + ' posted. Wait ' +
+                              str(sleep_time) + 's to restart!')
                         # If the list is not modified, we don't need to clean database
                         # self._clean_database()
                         sleep(sleep_time)
                         continue
-                    print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, ' + str(
-                        posted) + ' posted.', end=' ')
-                    print('Wait ' + str(sleep_time) + 's to restart!')
+                    print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, '
+                          + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
                     self._clean_database()
                     sleep(sleep_time)
                 except Exception:

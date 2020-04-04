@@ -1,4 +1,3 @@
 requests
 SQLAlchemy
 beautifulsoup4
-psycopg2
