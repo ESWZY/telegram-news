@@ -321,10 +321,7 @@ class NewsPostman(object):
             f = open("table.sql")
             lines = f.read()
             lines = lines.replace(' ' + 'news' + ' ', ' ' + new_table_name + ' ')
-            try:
-                print('New table name \"' + new_table_name + '\" is settable, setting...', end=' ')
-            except SyntaxError: # Python 2
-                print('New table name \"' + new_table_name + '\" is settable, setting...')
+            print('New table name \"' + new_table_name + '\" is settable, setting...')
             self._db.execute(lines)
             self._db.commit()
             print('Create table finished!')
