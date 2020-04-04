@@ -75,7 +75,7 @@ class InfoExtractor(object):
 
     def get_items_policy(self, text, listURL) -> (list, int):
         """Get all items in the list webpage"""
-        soup = BeautifulSoup(text, 'lxml')
+        soup = BeautifulSoup(text, 'html.parser')
         data = soup.select(self._list_selector)
         # print(data)
 
@@ -101,7 +101,7 @@ class InfoExtractor(object):
 
     def get_title_policy(self, text, item):
         """Get news title"""
-        soup = BeautifulSoup(text, 'lxml')
+        soup = BeautifulSoup(text, 'html.parser')
         title_select = soup.select(self._title_selector)
         try:
             return title_select[0].getText().strip()
@@ -111,7 +111,7 @@ class InfoExtractor(object):
 
     def get_paragraphs_policy(self, text, item):
         """Get news body"""
-        soup = BeautifulSoup(text, 'lxml')
+        soup = BeautifulSoup(text, 'html.parser')
         paragraph_select = soup.select(self._paragraph_selector)
         # print(paragraph_select)
 
@@ -139,7 +139,7 @@ class InfoExtractor(object):
 
     def get_time_policy(self, text, item):
         """Get news release time"""
-        soup = BeautifulSoup(text, 'lxml')
+        soup = BeautifulSoup(text, 'html.parser')
         time_select = soup.select(self._time_selector)
         try:
             publish_time = ''
@@ -161,7 +161,7 @@ class InfoExtractor(object):
 
     def get_source_policy(self, text, item):
 
-        soup = BeautifulSoup(text, 'lxml')
+        soup = BeautifulSoup(text, 'html.parser')
         source_select = soup.select(self._source_selector)
         url = item['link']
         try:

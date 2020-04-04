@@ -1,11 +1,12 @@
 # -*- coding: UTF-8 -*-
 
-from bs4 import BeautifulSoup
 import urllib.parse
+
+from bs4 import BeautifulSoup
 
 
 def keep_img(text, url):
-    soup = BeautifulSoup(text, 'lxml')
+    soup = BeautifulSoup(text, 'html.parser')
     # print(text)
 
     # No image here, return directly
@@ -30,7 +31,7 @@ def keep_img(text, url):
             img_link = img.get('src')
 
             # Get plain text and concatenate with link
-            result += BeautifulSoup(other[0], 'lxml').getText().strip()
+            result += BeautifulSoup(other[0], 'html.parser').getText().strip()
             if img_link:
                 # If the image link is a relative path
                 img_link = get_full_link(img_link, url)
@@ -42,13 +43,13 @@ def keep_img(text, url):
             cp = str(cp).replace(str(other[0]) + str(img), "")
 
         # Return processed text and the plain text behind
-        return result + BeautifulSoup(cp, 'lxml').getText()
+        return result + BeautifulSoup(cp, 'html.parser').getText()
 
 
 def keep_link(text, url):
     """Remove tags except <a></a>. Otherwise, telegram api will not parse"""
 
-    soup = BeautifulSoup(text, 'lxml')
+    soup = BeautifulSoup(text, 'html.parser')
     # print(text)
     # print(soup.select('img, a'))
 
@@ -88,7 +89,7 @@ def keep_link(text, url):
 
 
 def is_single_media(text):
-    soup = BeautifulSoup(text, 'lxml')
+    soup = BeautifulSoup(text, 'html.parser')
 
     # No <a> tag here, return directly
     if not soup.select('a'):
