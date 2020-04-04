@@ -265,7 +265,7 @@ class NewsPostman(object):
     _TOKEN = os.getenv("TOKEN")
     _DATABASE_URL = os.getenv("DATABASE_URL")
     _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
-    _table_name = 'news'
+    _table_name = None
     _max_table_rows = math.inf
     _list_request_response_encode = 'utf-8'
     _list_request_timeout = 10
@@ -369,7 +369,7 @@ class NewsPostman(object):
         else:
             return pure_url
 
-    def get_list(self, list_request_url) -> (list, int):
+    def _get_list(self, list_request_url) -> (list, int):
         timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
                                                               self._list_request_timeout_random_offset)
         res = requests.get(list_request_url, headers=self._headers, timeout=timeout)
@@ -385,7 +385,7 @@ class NewsPostman(object):
                 print('May be your header did not work.')
             return [], 0
 
-    def get_full(self, url, item):
+    def _get_full(self, url, item):
         timeout = self._full_request_timeout + random.randint(-self._full_request_timeout_random_offset,
                                                               self._full_request_timeout_random_offset)
         res = requests.get(url, headers=self._headers, timeout=timeout)
@@ -399,7 +399,7 @@ class NewsPostman(object):
 
         return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
-    def post(self, item, news_id):
+    def _post(self, item, news_id):
 
         # Get display policy by item info
         po, parse_mode, disable_web_page_preview = self._display_policy(item)
@@ -433,7 +433,7 @@ class NewsPostman(object):
                     raise Exception
         return res
 
-    def is_posted(self, news_id):
+    def _is_posted(self, news_id):
         rows = self._db.execute("SELECT * FROM " + self._table_name + " WHERE news_id = :news_id",
                                 {"news_id": str(news_id)})
         if rows.rowcount == 0:
@@ -441,13 +441,13 @@ class NewsPostman(object):
         else:
             return True
 
-    def action(self):
+    def _action(self):
         duplicate_list = []
         total = 0
         for link in self._listURLs:
             list_request_url = self._get_request_url(link)
             # print(list_request_url)
-            l, num = self.get_list(list_request_url)
+            l, num = self._get_list(list_request_url)
             total += num
             if l:
                 duplicate_list += l
@@ -478,12 +478,12 @@ class NewsPostman(object):
 
         unique_list = unique_list[-item_mun:]
         for item in unique_list:
-            if not self.is_posted(item['id']):
-                message = self.get_full(item['link'], item=item)
+            if not self._is_posted(item['id']):
+                message = self._get_full(item['link'], item=item)
                 # print(message)
 
                 # Post the message by api
-                res = self.post(message, item['id'])
+                res = self._post(message, item['id'])
                 print(str(item['id']) + " " + str(res.status_code))
                 total += 1
             else:
@@ -495,7 +495,7 @@ class NewsPostman(object):
         def work():
             while True:
                 try:
-                    total, posted = self.action()
+                    total, posted = self._action()
                     if total is None:
                         print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' + str(
                             posted) + ' posted.', end=' ')
@@ -515,6 +515,9 @@ class NewsPostman(object):
                     traceback.print_exc()
                     sleep(sleep_time)
 
+        if not self._table_name or not self._TOKEN or not self._DATABASE_URL:
+            print(self._lang + " boot failed! Nothing happened!")
+            return
         t = threading.Thread(target=work)
         t.start()
 
