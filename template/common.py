@@ -434,14 +434,6 @@ class NewsPostman(object):
         if not duplicate_list:
             return None, total
 
-        # Hit cache test here
-        list_set = {str(i) for i in duplicate_list}
-        if list_set != self._cache_list:
-            self._cache_list = list_set
-        else:
-            # print('List set is cached!')
-            return None, len(duplicate_list)
-
         # Remain the UNIQUE one from oldest to newest
         unique_list = []
         duplicate_list.reverse()
@@ -449,12 +441,20 @@ class NewsPostman(object):
             if item not in unique_list:
                 unique_list.append(item)
 
+        # Hit cache test here
+        list_set = {str(i) for i in unique_list}
+        if list_set != self._cache_list:
+            self._cache_list = list_set
+        else:
+            # print('List set is cached!')
+            return None, len(unique_list)
+
         total = 0
         posted = 0
 
         # Select top item_mun items
         item_mun = min(self._max_list_length, len(unique_list))
-        print(item_mun)
+
         unique_list = unique_list[-item_mun:]
         for item in unique_list:
             if not self.is_posted(item['id']):
