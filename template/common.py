@@ -4,7 +4,6 @@ import math
 import os
 import random
 import threading
-import time
 import traceback
 from time import sleep
 
@@ -22,7 +21,6 @@ from utils import (
     str_url_encode,
     is_single_media,
     get_full_link,
-    add_parameters_into_url,
 )
 
 
