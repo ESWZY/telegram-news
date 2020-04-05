@@ -83,7 +83,7 @@ class InfoExtractor(object):
             link = get_full_link(item.get('href'), listURL)
 
             result = {
-                "title": item.get_text(),
+                "title": item.get_text().strip(),
                 "link": link,
                 'id': self._id_policy(link)
             }
