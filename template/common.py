@@ -328,6 +328,7 @@ class NewsPostman(object):
     def set_max_table_rows(self, num, verbose=True):
         if verbose:
             print('Warning, the max_table_rows must at least 3 TIMES than the real list length!')
+            print('And to avoid problems caused by unstable list, 6 TIMES is a good choice!')
         self._max_table_rows = num
 
     def _clean_database(self):
