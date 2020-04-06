@@ -74,7 +74,7 @@ class InfoExtractor(object):
 
     def get_items_policy(self, text, listURL):
         """Get all items in the list webpage"""
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
         # print(data)
 
@@ -100,7 +100,7 @@ class InfoExtractor(object):
 
     def get_title_policy(self, text, item):
         """Get news title"""
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         title_select = soup.select(self._title_selector)
         try:
             return title_select[0].getText().strip()
@@ -110,7 +110,7 @@ class InfoExtractor(object):
 
     def get_paragraphs_policy(self, text, item):
         """Get news body"""
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
         # print(paragraph_select)
 
@@ -138,7 +138,7 @@ class InfoExtractor(object):
 
     def get_time_policy(self, text, item):
         """Get news release time"""
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         try:
             publish_time = ''
@@ -160,7 +160,7 @@ class InfoExtractor(object):
 
     def get_source_policy(self, text, item):
 
-        soup = BeautifulSoup(text, 'html.parser')
+        soup = BeautifulSoup(text, 'lxml')
         source_select = soup.select(self._source_selector)
         url = item['link']
         try:
@@ -352,7 +352,7 @@ class NewsPostman(object):
         # Commit changes to database
         self._db.commit()
 
-    def dont_post_old(self):
+    def not_post_old(self):
         """Use the same work logic to set old news item as POSTED"""
         self._action(flag=False)
 
@@ -454,7 +454,7 @@ class NewsPostman(object):
         else:
             return True
 
-    def _action(self, flag = True):     # -> (list, int)
+    def _action(self, flag=True):     # -> (list, int)
         duplicate_list = []
         total = 0
         for link in self._listURLs:
@@ -527,7 +527,7 @@ class NewsPostman(object):
                     sleep(sleep_time)
                 except Exception:
                     # Clear cache when any error
-                    self._cache_list = random.randint(1,100000)
+                    self._cache_list = random.randint(1, 100000)
                     traceback.print_exc()
                     sleep(sleep_time)
 
