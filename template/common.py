@@ -346,6 +346,16 @@ class NewsPostman(object):
             self._db.commit()
             print('Clean database finished!')
 
+    def _insert_one_item(self, news_id):
+        self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
+                         {"news_id": news_id})
+        # Commit changes to database
+        self._db.commit()
+
+    def dont_post_old(self):
+        """Use the same work logic to set old news item as POSTED"""
+        self._action(flag=False)
+
     def set_list_encoding(self, encode):
         self._list_request_response_encode = encode
 
@@ -422,10 +432,7 @@ class NewsPostman(object):
                        po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
             res = requests.get(post_url, proxies=self._proxies)
             if res.status_code == 200:
-                self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
-                                 {"news_id": news_id})
-                # Commit changes to database
-                self._db.commit()
+                self._insert_one_item(news_id)
             else:
                 # Clear cache when not post
                 self._cache_list = None
@@ -447,7 +454,7 @@ class NewsPostman(object):
         else:
             return True
 
-    def _action(self):     # -> (list, int)
+    def _action(self, flag = True):     # -> (list, int)
         duplicate_list = []
         total = 0
         for link in self._listURLs:
@@ -485,12 +492,16 @@ class NewsPostman(object):
         unique_list = unique_list[-item_mun:]
         for item in unique_list:
             if not self._is_posted(item['id']):
-                message = self._get_full(item['link'], item=item)
-                # print(message)
+                if flag:
+                    message = self._get_full(item['link'], item=item)
+                    # print(message)
 
-                # Post the message by api
-                res = self._post(message, item['id'])
-                print(str(item['id']) + " " + str(res.status_code))
+                    # Post the message by api
+                    res = self._post(message, item['id'])
+                    print(str(item['id']) + " " + str(res.status_code))
+                else:   # to set old news item as POSTED
+                    self._insert_one_item(item['id'])
+                    print('Get ' + item['id'] + ', but no action!')
                 total += 1
             else:
                 posted += 1
@@ -516,7 +527,7 @@ class NewsPostman(object):
                     sleep(sleep_time)
                 except Exception:
                     # Clear cache when any error
-                    self._cache_list = None
+                    self._cache_list = random.randint(1,100000)
                     traceback.print_exc()
                     sleep(sleep_time)
 
