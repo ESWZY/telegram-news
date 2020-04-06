@@ -165,7 +165,7 @@ class InfoExtractor(object):
         url = item['link']
         try:
             # Maybe source is a link
-            source = keep_link(str(source_select[0]), url).strip().replace('\n', '')
+            source = keep_link(str(source_select[0]), url).strip().replace('\n', '').replace(' '*60, ' / ')
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
         return source
