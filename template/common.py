@@ -354,7 +354,7 @@ class NewsPostman(object):
 
     def not_post_old(self):
         """Use the same work logic to set old news item as POSTED"""
-        self._action(flag=False)
+        self._action(no_post=True)
 
     def set_list_encoding(self, encode):
         self._list_request_response_encode = encode
@@ -454,7 +454,7 @@ class NewsPostman(object):
         else:
             return True
 
-    def _action(self, flag=True):     # -> (list, int)
+    def _action(self, no_post=False):     # -> (list, int)
         duplicate_list = []
         total = 0
         for link in self._listURLs:
@@ -492,7 +492,7 @@ class NewsPostman(object):
         unique_list = unique_list[-item_mun:]
         for item in unique_list:
             if not self._is_posted(item['id']):
-                if flag:
+                if not no_post:
                     message = self._get_full(item['link'], item=item)
                     # print(message)
 
