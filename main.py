@@ -4,7 +4,7 @@ import re
 import time
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import Session
 
 from template.common import (
     InfoExtractor,
