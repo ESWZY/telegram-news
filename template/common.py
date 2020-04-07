@@ -9,8 +9,6 @@ from time import sleep
 
 import requests
 from bs4 import BeautifulSoup
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
 
 from displaypolicy import (
     default_policy,
@@ -269,8 +267,8 @@ class NewsPostman(object):
     _proxies = None
     _display_policy = default_policy
     _TOKEN = os.getenv("TOKEN")
-    _DATABASE_URL = os.getenv("DATABASE_URL")
-    _db = scoped_session(sessionmaker(bind=create_engine(_DATABASE_URL)))
+    # _DATABASE_URL = None
+    _db = None
     _table_name = None
     _max_table_rows = math.inf
     _list_request_response_encode = 'utf-8'
@@ -286,13 +284,13 @@ class NewsPostman(object):
     # Cache the list webpage and check if modified
     _cache_list = {}
 
-    def __init__(self, listURLs, sendList, lang='', headers=None, proxies=None, display_policy=default_policy):
+    def __init__(self, listURLs, sendList, lang='', headers=None, proxies=None, display_policy=default_policy, db=None):
         self._DEBUG = True
         self._listURLs = listURLs
-        self._lang = lang
         self._sendList = sendList
+        self._lang = lang
         self._display_policy = display_policy
-
+        self._db = db
         if headers:
             self._headers = headers
         else:
@@ -304,9 +302,9 @@ class NewsPostman(object):
     def set_bot_token(self, new_token):
         self._TOKEN = new_token
 
-    def set_database_url(self, new_db_url):
-        self._DATABASE_URL = new_db_url
-        self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
+    def set_database(self, db):
+        self._db = db
+        # self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
 
     def set_table_name(self, new_table_name):
         self._table_name = new_table_name
@@ -427,6 +425,8 @@ class NewsPostman(object):
 
         res = None
         for chat_id in self._sendList:
+            if not chat_id:
+                continue
             # https://core.telegram.org/bots/api#sendmessage
             post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + \
                        po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
@@ -531,7 +531,7 @@ class NewsPostman(object):
                     traceback.print_exc()
                     sleep(sleep_time)
 
-        if not self._table_name or not self._TOKEN or not self._DATABASE_URL:
+        if not self._table_name or not self._TOKEN or not self._db:
             print(self._lang + " boot failed! Nothing happened!")
             return
         t = threading.Thread(target=work)
@@ -540,8 +540,9 @@ class NewsPostman(object):
 
 class NewsPostmanJSON(NewsPostman):
 
-    def __init__(self, listURLs, sendList, lang='', display_policy=default_policy):
-        super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang, display_policy=display_policy)
+    def __init__(self, listURLs, sendList, lang='', display_policy=default_policy, db=None):
+        super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang,
+                                              display_policy=display_policy, db=db)
         self._extractor = InfoExtractorJSON()
 
 

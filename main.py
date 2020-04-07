@@ -3,6 +3,9 @@ import os
 import re
 import time
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 from template.common import (
     InfoExtractor,
     InfoExtractorJSON,
