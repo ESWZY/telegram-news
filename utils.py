@@ -53,7 +53,8 @@ def keep_img(text, url):
 
 def keep_link(text, url):
     """Remove tags except <a></a>. Otherwise, telegram api will not parse"""
-
+    if not text:
+        return ""
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
     # print(soup.select('img, a'))

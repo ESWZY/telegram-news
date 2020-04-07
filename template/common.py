@@ -184,6 +184,8 @@ class InfoExtractorJSON(InfoExtractor):
 
     @staticmethod
     def _get_item_by_route(item, router):
+        if router is None:
+            return None
         try:
             for key in router:
                 if key is not None:
@@ -250,7 +252,6 @@ class InfoExtractorJSON(InfoExtractor):
             return None, len(news_list)
 
     def get_title_policy(self, text, item):
-        print(text)
         if item['title']:
             return item['title'].replace('&nbsp;', ' ')
         return super(InfoExtractorJSON, self).get_title_policy(text, item)
@@ -402,7 +403,6 @@ class NewsPostman(object):
         # print(res.text)
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
-            # print(res.text)
 
             return self._extractor.get_items_policy(res.text, list_request_url)
         else:
@@ -479,14 +479,12 @@ class NewsPostman(object):
 
         if not duplicate_list:
             return None, total
-
         # Remain the UNIQUE one from oldest to newest
         unique_list = []
         duplicate_list.reverse()
         for item in duplicate_list:
             if item not in unique_list:
                 unique_list.append(item)
-
         # Hit cache test here
         list_set = {str(i) for i in unique_list}
         if list_set != self._cache_list:
