@@ -170,22 +170,23 @@ class InfoExtractor(object):
 
 
 class InfoExtractorJSON(InfoExtractor):
-    _list_router = 'data->list'
-    _id_router = 'DocID'
-    _link_router = 'LinkUrl'
-    _title_router = 'Title'
-    _time_router = 'PubTime'
-    _source_router = 'SourceName'
+    _list_router = ['data', 'list']
+    _id_router = ['DocID']
+    _link_router = ['LinkUrl']
+    _title_router = ['Title']
+    _paragraphs_router = None
+    _time_router = ['PubTime']
+    _source_router = ['SourceName']
+    _json_policy = None         # Function that gets json from request response text
 
     def __init__(self):
         super().__init__()
 
     @staticmethod
     def _get_item_by_route(item, router):
-        root_keys = router.split('->')
         try:
-            for key in root_keys:
-                if key:
+            for key in router:
+                if key is not None:
                     item = item[key]
         except KeyError:
             return None
@@ -203,15 +204,21 @@ class InfoExtractorJSON(InfoExtractor):
     def set_title_router(self, router):
         self._title_router = router
 
+    def set_paragraphs_router(self, router):
+        self._paragraphs_router = router
+
     def set_time_router(self, router):
         self._time_router = router
 
     def set_source_router(self, router):
         self._source_router = router
 
+    def set_json_policy(self, json_policy):
+        self._json_policy = json_policy
+
     def get_items_policy(self, json_text, listURL):     # -> (list, int)
-        news_list = []
-        # list_json = json
+        if self._json_policy:
+            json_text = self._json_policy(json_text)
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
@@ -222,11 +229,13 @@ class InfoExtractorJSON(InfoExtractor):
 
         list_json = self._get_item_by_route(list_json, self._list_router)
 
+        news_list = []
         for i in list_json:
             item = dict()
             item['id'] = self._get_item_by_route(i, self._id_router)
             item['link'] = get_full_link(self._get_item_by_route(i, self._link_router), listURL)
             item['title'] = self._get_item_by_route(i, self._title_router)
+            item['p'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item["time"] = self._get_item_by_route(i, self._time_router)
             item["source"] = self._get_item_by_route(i, self._source_router)
             news_list.append(item)
@@ -241,11 +250,14 @@ class InfoExtractorJSON(InfoExtractor):
             return None, len(news_list)
 
     def get_title_policy(self, text, item):
+        print(text)
         if item['title']:
             return item['title'].replace('&nbsp;', ' ')
         return super(InfoExtractorJSON, self).get_title_policy(text, item)
 
     def get_paragraphs_policy(self, text, item):
+        if item['p']:
+            return item['p']
         return super(InfoExtractorJSON, self).get_paragraphs_policy(text, item)
 
     def get_time_policy(self, text, item):
@@ -266,6 +278,7 @@ class NewsPostman(object):
     _headers = None
     _proxies = None
     _display_policy = default_policy
+    _parameter_policy = None
     _TOKEN = os.getenv("TOKEN")
     # _DATABASE_URL = None
     _db = None
@@ -279,7 +292,6 @@ class NewsPostman(object):
     _full_request_timeout_random_offset = 0
     _max_list_length = math.inf
     _extractor = InfoExtractor()
-    _parameter = None
 
     # Cache the list webpage and check if modified
     _cache_list = {}
@@ -374,12 +386,12 @@ class NewsPostman(object):
     def set_extractor(self, extractor):
         self._extractor = extractor
 
-    def set_parameter(self, parameter):
-        self._parameter = parameter
+    def set_parameter_policy(self, parameter_policy):
+        self._parameter_policy = parameter_policy
 
     def _get_request_url(self, pure_url):
-        if self._parameter:
-            return self._parameter.get_parameters(url=pure_url)
+        if self._parameter_policy:
+            return self._parameter_policy(url=pure_url)
         else:
             return pure_url
 

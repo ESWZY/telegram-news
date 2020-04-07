@@ -36,6 +36,11 @@ def default_policy(item):
     else:
         po += item['paragraphs']
 
+    if po[-1] != '\n':
+        po += '\n'
+    if po[-2] != '\n':
+        po += '\n'
+
     po += item['time']
     if item['time']:
         po += '\n'
