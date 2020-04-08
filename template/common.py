@@ -138,9 +138,19 @@ class InfoExtractor(object):
         """Get news release time"""
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
-        try:
+        if not time_select:
+            return ""
+        publish_time = time_select[0].getText().strip().replace('\n', ' ')
+        publish_time = publish_time.split('丨')[0].strip()       # TODO: Russian.News.Cn & portuguese.xinhuanet.com
+        publish_time = publish_time.replace('WinterIsComing (31822)发表于 ', '')\
+            .replace('\t\t\t\t\t\t新浪微博分享 腾讯分享 豆瓣分享 人人分享 网易分享  来自部门', '')     # TODO: https://www.solidot.org/
+        if len(publish_time) > 100:
+            publish_time = ''
+        '''try:
             publish_time = ''
             for text in time_select:
+                print(text)
+                print('|' + text.getText())
                 publish_time = text.getText().strip()
                 publish_time = publish_time.split('丨')[0]
                 if publish_time:
@@ -154,6 +164,7 @@ class InfoExtractor(object):
                 publish_time = ''
         except IndexError:  # Do not have this element because of missing/403/others
             publish_time = ""
+        '''
         return publish_time
 
     def get_source_policy(self, text, item):
@@ -404,7 +415,7 @@ class NewsPostman(object):
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
 
-            return self._extractor.get_items_policy(res.text, list_request_url)
+            return self._extractor.get_items_policy(res.text.replace('\/','/'), list_request_url)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:

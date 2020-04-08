@@ -84,7 +84,7 @@ def keep_link(text, url):
 
             # Get plain text and concatenate with link
             result += keep_img(other[0], url)
-            if url:
+            if link_url:        # TODO: error?
                 result += '<a href=\"' + link_url + '\">' + str(content) + '</a>'
 
             # Remove the processed text from processing string
