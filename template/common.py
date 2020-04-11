@@ -570,6 +570,7 @@ class NewsPostman(object):
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
+                    print('error in', self._lang)
                     traceback.print_exc()
                     sleep(sleep_time)
 

@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from template.common import (
     InfoExtractor,
     InfoExtractorJSON,
+    InfoExtractorXML,
     NewsPostman,
     NewsPostmanJSON,
+    NewsPostmanXML,
 )
 from utils import (
     add_parameters_into_url,
