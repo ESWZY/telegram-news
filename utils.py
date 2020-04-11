@@ -1,4 +1,7 @@
 # -*- coding: UTF-8 -*-
+import json
+
+import xmltodict
 
 try:
     import urlparse
@@ -136,5 +139,10 @@ def is_length_immunity(item):
         return True
     return False
 
+
+def xml_to_json(xml_str):
+    xml_parse = xmltodict.parse(xml_str)
+    json_str = json.dumps(xml_parse)
+    return json_str
 
 print("DELETED!!")

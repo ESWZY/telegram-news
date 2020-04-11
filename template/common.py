@@ -19,6 +19,7 @@ from utils import (
     str_url_encode,
     is_single_media,
     get_full_link,
+    xml_to_json,
 )
 
 
@@ -181,14 +182,14 @@ class InfoExtractor(object):
 
 
 class InfoExtractorJSON(InfoExtractor):
-    _list_router = ['data', 'list']
-    _id_router = ['DocID']
-    _link_router = ['LinkUrl']
-    _title_router = ['Title']
+    _list_router = None
+    _id_router = None
+    _link_router = None
+    _title_router = None
     _paragraphs_router = None
-    _time_router = ['PubTime']
-    _source_router = ['SourceName']
-    _json_policy = None         # Function that gets json from request response text
+    _time_router = None
+    _source_router = None
+    _pre_process_policy = None         # Function that gets json from request response text
 
     def __init__(self):
         super().__init__()
@@ -226,12 +227,17 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
-    def set_json_policy(self, json_policy):
-        self._json_policy = json_policy
+    def set_pre_process_policy(self, pre_process_policy):
+        self._pre_process_policy = pre_process_policy
+
+    def _pre_process(self, text):
+        if self._pre_process_policy:
+            return self._pre_process_policy(text)
+        else:
+            return text
 
     def get_items_policy(self, json_text, listURL):     # -> (list, int)
-        if self._json_policy:
-            json_text = self._json_policy(json_text)
+        json_text = self._pre_process(json_text)
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
@@ -245,8 +251,12 @@ class InfoExtractorJSON(InfoExtractor):
         news_list = []
         for i in list_json:
             item = dict()
-            item['id'] = self._get_item_by_route(i, self._id_router)
             item['link'] = get_full_link(self._get_item_by_route(i, self._link_router), listURL)
+            # Router has a higher priority
+            if self._id_router:
+                item['id'] = self._get_item_by_route(i, self._id_router)
+            else:
+                item['id'] = self._id_policy(item['link'])
             item['title'] = self._get_item_by_route(i, self._title_router)
             item['p'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item["time"] = self._get_item_by_route(i, self._time_router)
@@ -281,6 +291,17 @@ class InfoExtractorJSON(InfoExtractor):
         if item['source']:
             return item['source']
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
+
+
+class InfoExtractorXML(InfoExtractorJSON):
+
+    def __init__(self):
+        super().__init__()
+
+    def _pre_process(self, text):
+        if self._pre_process_policy:
+            text = self._pre_process_policy(text)
+        return xml_to_json(text)
 
 
 class NewsPostman(object):
@@ -565,6 +586,14 @@ class NewsPostmanJSON(NewsPostman):
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang,
                                               display_policy=display_policy, db=db)
         self._extractor = InfoExtractorJSON()
+
+
+class NewsPostmanXML(NewsPostman):
+
+    def __init__(self, listURLs, sendList, db, lang='', display_policy=default_policy):
+        super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, lang=lang,
+                                              display_policy=display_policy, db=db)
+        self._extractor = InfoExtractorXML()
 
 
 print("DELETED!!")

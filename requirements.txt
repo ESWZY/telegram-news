@@ -3,3 +3,4 @@ SQLAlchemy
 beautifulsoup4
 psycopg2
 lxml
+xmltodict
