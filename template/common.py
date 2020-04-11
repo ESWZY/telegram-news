@@ -308,7 +308,7 @@ class NewsPostman(object):
     # Cache the list webpage and check if modified
     _cache_list = {}
 
-    def __init__(self, listURLs, sendList, lang='', headers=None, proxies=None, display_policy=default_policy, db=None):
+    def __init__(self, listURLs, sendList, db, lang='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = True
         self._listURLs = listURLs
         self._sendList = sendList
@@ -561,7 +561,7 @@ class NewsPostman(object):
 
 class NewsPostmanJSON(NewsPostman):
 
-    def __init__(self, listURLs, sendList, lang='', display_policy=default_policy, db=None):
+    def __init__(self, listURLs, sendList, db, lang='', display_policy=default_policy):
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang,
                                               display_policy=display_policy, db=db)
         self._extractor = InfoExtractorJSON()

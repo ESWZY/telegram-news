@@ -16,7 +16,7 @@ def keep_img(text, url):
 
     # No image here, return directly
     if not soup.select('img'):
-        return soup.getText()
+        return soup.getText().replace('<', '&lt;').replace('>', '&gt;')
 
     # Find image(s)
     else:
@@ -36,7 +36,7 @@ def keep_img(text, url):
             img_link = img.get('src')
 
             # Get plain text and concatenate with link
-            result += BeautifulSoup(other[0], 'lxml').getText().strip()
+            result += BeautifulSoup(other[0], 'lxml').getText().strip().replace('<', '&lt;').replace('>', '&gt;')
             if img_link:
                 # If the image link is a relative path
                 img_link = get_full_link(img_link, url)
@@ -48,7 +48,7 @@ def keep_img(text, url):
             cp = str(cp).replace(str(other[0]) + str(img), "")
 
         # Return processed text and the plain text behind
-        return result + BeautifulSoup(cp, 'lxml').getText()
+        return result + BeautifulSoup(cp, 'lxml').getText().replace('<', '&lt;').replace('>', '&gt;')
 
 
 def keep_link(text, url):
@@ -79,12 +79,13 @@ def keep_link(text, url):
             other = str(cp).split(str(link))
 
             # Get the link url
-            content = link.get_text()
+            content = link.get_text().replace('<', '&lt;').replace('>', '&gt;')
             link_url = link.get('href')
 
             # Get plain text and concatenate with link
             result += keep_img(other[0], url)
-            if link_url:        # TODO: error?
+            if link_url:
+                link_url = get_full_link(link_url, url)
                 result += '<a href=\"' + link_url + '\">' + str(content) + '</a>'
 
             # Remove the processed text from processing string
