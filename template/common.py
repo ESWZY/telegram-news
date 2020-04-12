@@ -32,9 +32,7 @@ class InfoExtractor(object):
     # Cache the list webpage and check if modified
     _cached_list_items = None
 
-    _list_selector = '.dataList > .clearfix > h3 > a, ' \
-                     '.newsList2 > h2 > a, ' \
-                     '.newsList > h2 > a'
+    _list_selector = '.dataList > .clearfix > h3 > a'
 
     _time_selector = '.h-info > span:nth-child(1), ' \
                      '.time'

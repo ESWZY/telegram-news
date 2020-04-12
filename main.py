@@ -17,6 +17,7 @@ from template.common import (
 )
 from utils import (
     add_parameters_into_url,
+    LOGO,
 )
 
 print("DELETED!!")

@@ -12,6 +12,16 @@ except Exception:  # For Python 3
 
 from bs4 import BeautifulSoup
 
+LOGO = r'''
+	  ______     __
+	 /_  __/__  / /__  ____ __________ _____ ___        ____  ___ _      _______
+      / / / _ \/ / _ \/ __ `/ ___/ __ `/ __ `__ \______/ __ \/ _ \ | /| / / ___/
+ 	 / / /  __/ /  __/ /_/ / /  / /_/ / / / / / /_____/ / / /  __/ |/ |/ (__  )
+	/_/  \___/_/\___/\__, /_/   \__,_/_/ /_/ /_/     /_/ /_/\___/|__/|__/____/
+                    /____/
+	                https://github.com/ESWZY/telegram-news
+'''
+
 
 def keep_img(text, url):
     soup = BeautifulSoup(text, 'lxml')
@@ -144,5 +154,6 @@ def xml_to_json(xml_str):
     xml_parse = xmltodict.parse(xml_str)
     json_str = json.dumps(xml_parse)
     return json_str
+
 
 print("DELETED!!")
