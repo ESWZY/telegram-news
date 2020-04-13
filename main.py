@@ -16,8 +16,9 @@ from template.common import (
     NewsPostmanXML,
 )
 from utils import (
-    add_parameters_into_url,
     LOGO,
+    add_parameters_into_url,
+    xml_to_json,
 )
 
 print("DELETED!!")
