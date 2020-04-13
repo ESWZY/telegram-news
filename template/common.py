@@ -27,6 +27,8 @@ class InfoExtractor(object):
     _listURLs = []
     _lang = ""
     _id_policy = default_id_policy
+    _list_pre_process_policy = None         # Function that gets json from request response text
+    _full_pre_process_policy = None
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
@@ -69,8 +71,27 @@ class InfoExtractor(object):
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
 
+    def set_list_pre_process_policy(self, pre_process_policy):
+        self._list_pre_process_policy = pre_process_policy
+
+    def set_full_pre_process_policy(self, pre_process_policy):
+        self._full_pre_process_policy = pre_process_policy
+
+    def list_pre_process(self, text):
+        if self._list_pre_process_policy:
+            return self._list_pre_process_policy(text)
+        else:
+            return text
+
+    def full_pre_process(self, text):
+        if self._full_pre_process_policy:
+            return self._full_pre_process_policy(text)
+        else:
+            return text
+
     def get_items_policy(self, text, listURL):
         """Get all items in the list webpage"""
+        text = self.list_pre_process(text)
         soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
         # print(data)
@@ -187,7 +208,6 @@ class InfoExtractorJSON(InfoExtractor):
     _paragraphs_router = None
     _time_router = None
     _source_router = None
-    _pre_process_policy = None         # Function that gets json from request response text
 
     def __init__(self):
         super().__init__()
@@ -225,23 +245,15 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
-    def set_pre_process_policy(self, pre_process_policy):
-        self._pre_process_policy = pre_process_policy
-
-    def _pre_process(self, text):
-        if self._pre_process_policy:
-            return self._pre_process_policy(text)
-        else:
-            return text
-
     def get_items_policy(self, json_text, listURL):     # -> (list, int)
-        json_text = self._pre_process(json_text)
+        json_text = self.list_pre_process(json_text)
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
             try:
                 list_json = json.loads(json_text[1:-2])  # Remove brackets and load as json
-            except Exception:
+            except Exception as e:
+                print('List json decode filed. ', e)
                 return None, 0
 
         list_json = self._get_item_by_route(list_json, self._list_router)
@@ -272,7 +284,7 @@ class InfoExtractorJSON(InfoExtractor):
 
     def get_title_policy(self, text, item):
         if item['title']:
-            return item['title'].replace('&nbsp;', ' ')
+            return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         return super(InfoExtractorJSON, self).get_title_policy(text, item)
 
     def get_paragraphs_policy(self, text, item):
@@ -296,9 +308,9 @@ class InfoExtractorXML(InfoExtractorJSON):
     def __init__(self):
         super().__init__()
 
-    def _pre_process(self, text):
-        if self._pre_process_policy:
-            text = self._pre_process_policy(text)
+    def list_pre_process(self, text):
+        if self._list_pre_process_policy:
+            text = self._list_pre_process_policy(text)
         return xml_to_json(text)
 
 
@@ -434,7 +446,7 @@ class NewsPostman(object):
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
 
-            return self._extractor.get_items_policy(res.text.replace('\/','/'), list_request_url)
+            return self._extractor.get_items_policy(res.text, list_request_url)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
@@ -446,12 +458,13 @@ class NewsPostman(object):
                                                               self._full_request_timeout_random_offset)
         res = requests.get(url, headers=self._headers, timeout=timeout)
         res.encoding = self._full_request_response_encode
-        # print(res.text)
+        text = self._extractor.full_pre_process(res.text)
+        # print(text)
 
-        title = self._extractor.get_title_policy(res.text, item)
-        paragraphs = self._extractor.get_paragraphs_policy(res.text, item)
-        publish_time = self._extractor.get_time_policy(res.text, item)
-        source = self._extractor.get_source_policy(res.text, item)
+        title = self._extractor.get_title_policy(text, item)
+        paragraphs = self._extractor.get_paragraphs_policy(text, item)
+        publish_time = self._extractor.get_time_policy(text, item)
+        source = self._extractor.get_source_policy(text, item)
 
         return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
