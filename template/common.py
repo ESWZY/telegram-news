@@ -450,7 +450,7 @@ class NewsPostman(object):
         # print(res.text)
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
-            text = self._extractor.list_pre_process(res.text)
+            text = self._extractor.list_pre_process(res.text, list_request_url)
             return self._extractor.get_items_policy(text, list_request_url)
         else:
             print('List URL error exception! ' + str(res.status_code))
