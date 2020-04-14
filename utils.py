@@ -130,7 +130,10 @@ def str_url_encode(text):
 
 def get_full_link(link, base_url):
     """Parse the relative link to absolute link."""
-    return urlparse.urljoin(base_url, link)
+    if link is not None:
+        return urlparse.urljoin(base_url, link)
+    else:
+        return ''
 
 
 def add_parameters_into_url(url, parameters):

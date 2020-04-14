@@ -25,30 +25,33 @@ def default_policy(item):
 
     # po is the text we want to post
     po = ""
-    po += '<b>' + item['title'] + '</b>'
-    po += '\n\n'
+    if item['title']:
+        po += '<b>' + item['title'] + '</b>'
+        po += '\n\n'
 
-    if len(item['paragraphs']) > max_len or item['paragraphs'].count('\n') > max_par_num * 2:
-        # Leave a hint
-        po += '<i>Too long to display.</i>\n\n'
-        # If there is exceed the limit, enable web page preview.
-        disable_web_page_preview = 'False'
-    else:
-        po += item['paragraphs']
+    if item['paragraphs']:
+        if len(item['paragraphs']) > max_len or item['paragraphs'].count('\n') > max_par_num * 2:
+            # Leave a hint
+            po += '<i>Too long to display.</i>\n\n'
+            # If there is exceed the limit, enable web page preview.
+            disable_web_page_preview = 'False'
+        else:
+            po += item['paragraphs']
 
-    if po[-1] != '\n':
-        po += '\n'
-    if po[-2] != '\n':
-        po += '\n'
+        if po[-1] != '\n':
+            po += '\n'
+        if po[-2] != '\n':
+            po += '\n'
 
-    po += item['time']
     if item['time']:
+        po += item['time']
         po += '\n'
 
     if item['source']:
         po += '[' + item['source'] + ']' + ' '
 
-    po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
+    if item['link']:
+        po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
 
     po = po.replace('<br>', "")
 

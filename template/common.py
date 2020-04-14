@@ -8,6 +8,7 @@ import traceback
 from time import sleep
 
 import requests
+import sqlalchemy
 from bs4 import BeautifulSoup
 
 from displaypolicy import (
@@ -32,7 +33,7 @@ class InfoExtractor(object):
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
-    _cached_list_items = None
+    _cached_list_items = random.randint(1,10**6)
 
     _list_selector = '.dataList > .clearfix > h3 > a'
 
@@ -342,7 +343,7 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
-    _cache_list = {}
+    _cache_list = random.randint(1,10**6)
 
     def __init__(self, listURLs, sendList, db, lang='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = True
@@ -455,7 +456,7 @@ class NewsPostman(object):
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
-                print('May be your header did not work.')
+                print('Maybe something not work.')
             return [], 0
 
     def _get_full(self, url, item):
@@ -584,7 +585,19 @@ class NewsPostman(object):
                     self._clean_database()
                     sleep(sleep_time)
                 except requests.exceptions.ReadTimeout as e:
+                    print('error in', self._lang)
                     print(e)
+                except requests.exceptions.ConnectTimeout as e:
+                    print('error in', self._lang)
+                    print(e)
+                except requests.exceptions.ConnectionError as e:
+                    print('error in', self._lang)
+                    print(e)
+                except sqlalchemy.exc.InvalidRequestError as e:
+                    print('error in', self._lang)
+                    print('Unknown error!!', e)
+                    traceback.print_exc()
+                    sleep(sleep_time)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
