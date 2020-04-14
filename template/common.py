@@ -583,6 +583,8 @@ class NewsPostman(object):
                           + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
                     self._clean_database()
                     sleep(sleep_time)
+                except requests.exceptions.ReadTimeout as e:
+                    print(e)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)

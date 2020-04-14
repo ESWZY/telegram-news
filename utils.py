@@ -143,10 +143,13 @@ def add_parameters_into_url(url, parameters):
 
 
 def is_length_immunity(item):
-    if item['title'][:4] == '综合消息':
-        return True
-    if item['title'][:2] == '综述':
-        return True
+    if item['title']:
+        if item['title'][:4] == '综合消息':
+            return True
+        if item['title'][:2] == '综述':
+            return True
+    else:
+        print('Missing title!', item)
     return False
 
 
