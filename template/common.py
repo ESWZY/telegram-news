@@ -77,21 +77,28 @@ class InfoExtractor(object):
     def set_full_pre_process_policy(self, pre_process_policy):
         self._full_pre_process_policy = pre_process_policy
 
-    def list_pre_process(self, text):
+    def list_pre_process(self, text, list_url):
         if self._list_pre_process_policy:
-            return self._list_pre_process_policy(text)
+            try:
+                return self._list_pre_process_policy(text, list_url)
+            except TypeError:
+                # _list_pre_process_policy not need url
+                return self._list_pre_process_policy(text)
         else:
             return text
 
-    def full_pre_process(self, text):
+    def full_pre_process(self, text, full_url):
         if self._full_pre_process_policy:
-            return self._full_pre_process_policy(text)
+            try:
+                return self._full_pre_process_policy(text, full_url)
+            except TypeError:
+                # _full_pre_process_policy not need url
+                return self._full_pre_process_policy(text)
         else:
             return text
 
     def get_items_policy(self, text, listURL):
         """Get all items in the list webpage"""
-        text = self.list_pre_process(text)
         soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
         # print(data)
@@ -246,7 +253,6 @@ class InfoExtractorJSON(InfoExtractor):
         self._source_router = router
 
     def get_items_policy(self, json_text, listURL):     # -> (list, int)
-        json_text = self.list_pre_process(json_text)
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
@@ -308,9 +314,8 @@ class InfoExtractorXML(InfoExtractorJSON):
     def __init__(self):
         super().__init__()
 
-    def list_pre_process(self, text):
-        if self._list_pre_process_policy:
-            text = self._list_pre_process_policy(text)
+    def list_pre_process(self, text, list_url):
+        text = super(InfoExtractorXML, self).list_pre_process(text, list_url=list_url)
         return xml_to_json(text)
 
 
@@ -445,8 +450,8 @@ class NewsPostman(object):
         # print(res.text)
         if res.status_code == 200:
             res.encoding = self._list_request_response_encode
-
-            return self._extractor.get_items_policy(res.text, list_request_url)
+            text = self._extractor.list_pre_process(res.text)
+            return self._extractor.get_items_policy(text, list_request_url)
         else:
             print('List URL error exception! ' + str(res.status_code))
             if res.status_code == 403:
@@ -458,7 +463,7 @@ class NewsPostman(object):
                                                               self._full_request_timeout_random_offset)
         res = requests.get(url, headers=self._headers, timeout=timeout)
         res.encoding = self._full_request_response_encode
-        text = self._extractor.full_pre_process(res.text)
+        text = self._extractor.full_pre_process(res.text, item['link'])
         # print(text)
 
         title = self._extractor.get_title_policy(text, item)
