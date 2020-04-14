@@ -583,7 +583,6 @@ class NewsPostman(object):
                     print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, '
                           + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
                     self._clean_database()
-                    sleep(sleep_time)
                 except requests.exceptions.ReadTimeout as e:
                     print('error in', self._lang)
                     print(e)
@@ -597,13 +596,12 @@ class NewsPostman(object):
                     print('error in', self._lang)
                     print('Unknown error!!', e)
                     traceback.print_exc()
-                    sleep(sleep_time)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
                     print('error in', self._lang)
                     traceback.print_exc()
-                    sleep(sleep_time)
+                sleep(sleep_time)
 
         if not self._table_name or not self._TOKEN or not self._db:
             print(self._lang + " boot failed! Nothing happened!")
