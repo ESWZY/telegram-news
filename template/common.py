@@ -460,11 +460,14 @@ class NewsPostman(object):
             return [], 0
 
     def _get_full(self, url, item):
-        timeout = self._full_request_timeout + random.randint(-self._full_request_timeout_random_offset,
-                                                              self._full_request_timeout_random_offset)
-        res = requests.get(url, headers=self._headers, timeout=timeout)
-        res.encoding = self._full_request_response_encode
-        text = self._extractor.full_pre_process(res.text, item['link'])
+        text = ""
+        if url:
+            timeout = self._full_request_timeout + random.randint(-self._full_request_timeout_random_offset,
+                                                                  self._full_request_timeout_random_offset)
+            res = requests.get(url, headers=self._headers, timeout=timeout)
+            res.encoding = self._full_request_response_encode
+            text = res.text
+        text = self._extractor.full_pre_process(text, item['link'])
         # print(text)
 
         title = self._extractor.get_title_policy(text, item)
