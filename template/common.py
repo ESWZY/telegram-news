@@ -322,7 +322,7 @@ class InfoExtractorXML(InfoExtractorJSON):
 
 class NewsPostman(object):
     _listURLs = []
-    _lang = ""
+    _tag = ""
     _sendList = []
     _headers = None
     _proxies = None
@@ -345,11 +345,11 @@ class NewsPostman(object):
     # Cache the list webpage and check if modified
     _cache_list = random.randint(1,10**6)
 
-    def __init__(self, listURLs, sendList, db, lang='', headers=None, proxies=None, display_policy=default_policy):
+    def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = True
         self._listURLs = listURLs
         self._sendList = sendList
-        self._lang = lang
+        self._tag = tag
         self._display_policy = display_policy
         self._db = db
         if headers:
@@ -568,43 +568,45 @@ class NewsPostman(object):
         return total, posted
 
     def poll(self, sleep_time=30):
+        # Thread work function
         def work():
             while True:
                 try:
                     total, posted = self._action()
                     if total is None:
-                        print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\tList not modified! ' +
+                        print(self._tag + ':' + ' ' * (6 - len(self._tag)) + '\tList not modified! ' +
                               str(min(posted, self._max_list_length)) + ' posted. Wait ' +
                               str(sleep_time) + 's to restart!')
                         # If the list is not modified, we don't need to clean database
                         # self._clean_database()
-                        sleep(sleep_time)
-                        continue
-                    print(self._lang + ':' + ' ' * (6 - len(self._lang)) + '\t' + str(total) + ' succeeded, '
-                          + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
-                    self._clean_database()
+                    else:
+                        print(self._tag + ':' + ' ' * (6 - len(self._tag)) + '\t' + str(total) + ' succeeded, '
+                              + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
+                        self._clean_database()
                 except requests.exceptions.ReadTimeout as e:
-                    print('error in', self._lang)
+                    print('error in', self._tag)
                     print(e)
                 except requests.exceptions.ConnectTimeout as e:
-                    print('error in', self._lang)
+                    print('error in', self._tag)
                     print(e)
                 except requests.exceptions.ConnectionError as e:
-                    print('error in', self._lang)
+                    print('error in', self._tag)
                     print(e)
                 except sqlalchemy.exc.InvalidRequestError as e:
-                    print('error in', self._lang)
+                    print('error in', self._tag)
                     print('Unknown error!!', e)
                     traceback.print_exc()
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
-                    print('error in', self._lang)
+                    print('error in', self._tag)
                     traceback.print_exc()
+                # Sleep when each loop ended
                 sleep(sleep_time)
 
+        # Boot check
         if not self._table_name or not self._TOKEN or not self._db:
-            print(self._lang + " boot failed! Nothing happened!")
+            print(self._tag + " boot failed! Nothing happened!")
             return
         t = threading.Thread(target=work)
         t.start()
@@ -612,17 +614,17 @@ class NewsPostman(object):
 
 class NewsPostmanJSON(NewsPostman):
 
-    def __init__(self, listURLs, sendList, db, lang='', display_policy=default_policy):
-        super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, lang=lang,
+    def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+        super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, tag=tag,
                                               display_policy=display_policy, db=db)
         self._extractor = InfoExtractorJSON()
 
 
 class NewsPostmanXML(NewsPostman):
 
-    def __init__(self, listURLs, sendList, db, lang='', display_policy=default_policy):
-        super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, lang=lang,
-                                              display_policy=display_policy, db=db)
+    def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+        super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, tag=tag,
+                                             display_policy=display_policy, db=db)
         self._extractor = InfoExtractorXML()
 
 
