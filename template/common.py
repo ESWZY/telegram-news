@@ -403,7 +403,7 @@ class NewsPostman(object):
                 "DELETE FROM " + self._table_name + " WHERE id IN ( SELECT id FROM " + self._table_name +
                 " ORDER BY id ASC LIMIT " + str(delete_how_many) + ")")
             self._db.commit()
-            print('Clean database finished!')
+            print('\033[33mClean database finished!\033[0m')
 
     def _insert_one_item(self, news_id):
         self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
@@ -454,7 +454,7 @@ class NewsPostman(object):
             text = self._extractor.list_pre_process(res.text, list_request_url)
             return self._extractor.get_items_policy(text, list_request_url)
         else:
-            print('List URL error exception! ' + str(res.status_code))
+            print('\033[31mList URL error exception! ' + str(res.status_code) + '\033[0m')
             if res.status_code == 403:
                 print('Maybe something not work.')
             return [], 0
@@ -496,15 +496,15 @@ class NewsPostman(object):
                 self._insert_one_item(news_id)
             else:
                 # Clear cache when not post
-                self._cache_list = None
+                self._cache_list = random.randint(1, 10**6)
 
-                print('ERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+                print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code) + '\033[0m')
                 print(res.text)
                 try:
                     res_time = json.loads(res.text)['parameters']['retry_after']
                     sleep(res_time)
                 except KeyError:
-                    raise Exception
+                    raise Exception('Telegram API error!')
         return res
 
     def _is_posted(self, news_id):
@@ -557,7 +557,7 @@ class NewsPostman(object):
 
                     # Post the message by api
                     res = self._post(message, item['id'])
-                    print(str(item['id']) + " " + str(res.status_code))
+                    print('\033[32m' + str(item['id']) + ' ' + str(res.status_code) + '\033[0m')
                 else:   # to set old news item as POSTED
                     self._insert_one_item(item['id'])
                     print('Get ' + item['id'] + ', but no action!')
@@ -584,29 +584,34 @@ class NewsPostman(object):
                               + str(posted) + ' posted. Wait ' + str(sleep_time) + 's to restart!')
                         self._clean_database()
                 except requests.exceptions.ReadTimeout as e:
-                    print('error in', self._tag)
+                    print('\033[31mwarning in', self._tag)
                     print(e)
+                    print('\033[0m')
                 except requests.exceptions.ConnectTimeout as e:
-                    print('error in', self._tag)
+                    print('\033[31mwarning in', self._tag)
                     print(e)
+                    print('\033[0m')
                 except requests.exceptions.ConnectionError as e:
-                    print('error in', self._tag)
+                    print('\033[31mwarning in', self._tag)
                     print(e)
+                    print('\033[0m')
                 except sqlalchemy.exc.InvalidRequestError as e:
-                    print('error in', self._tag)
+                    print('\033[31merror in', self._tag)
                     print('Unknown error!!', e)
                     traceback.print_exc()
+                    print('\033[0m')
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
-                    print('error in', self._tag)
+                    print('\033[31merror in', self._tag)
                     traceback.print_exc()
+                    print('\033[0m')
                 # Sleep when each loop ended
                 sleep(sleep_time)
 
         # Boot check
         if not self._table_name or not self._TOKEN or not self._db:
-            print(self._tag + " boot failed! Nothing happened!")
+            print('\033[31m' + self._tag + " boot failed! Nothing happened!\033[0m")
             return
         t = threading.Thread(target=work)
         t.start()
