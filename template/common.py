@@ -492,6 +492,8 @@ class NewsPostman(object):
         for chat_id in self._sendList:
             if not chat_id:
                 continue
+            print('DEBUG: ', news_id)
+            print(po)
             # https://core.telegram.org/bots/api#sendmessage
             post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + \
                        po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
