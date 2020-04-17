@@ -402,7 +402,7 @@ class NewsPostman(object):
     _cache_list = random.randint(1, 10**6)
 
     def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
-        self._DEBUG = True
+        self._DEBUG = False
         self._listURLs = listURLs
         self._sendList = sendList
         self._tag = tag
