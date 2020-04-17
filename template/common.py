@@ -126,7 +126,6 @@ class InfoExtractor(object):
 
         news_list = []
         for i in data:
-
             soup2 = BeautifulSoup(str(i), 'lxml')
             link_select = soup2.select(self._outer_link_selector)
             link = get_full_link(link_select[0].get('href'), listURL)
@@ -140,29 +139,29 @@ class InfoExtractor(object):
                 try:
                     item['title'] = soup2.select(self._outer_title_selector)[0].get_text().strip()
                 except IndexError:
-                    item['title'] = '1'
+                    item['title'] = ''
             else:
                 item['title'] = item['title']
             if self._outer_paragraph_selector:
                 try:
-                    paragraphs = [x.get_text() for x in soup2.select(self._outer_paragraph_selector)]
+                    paragraphs = [x.get_text().strip() for x in soup2.select(self._outer_paragraph_selector)]
                     item['paragraphs'] = '\n\n'.join(paragraphs) + '\n\n'
                 except IndexError:
-                    item['paragraphs'] = '1'
+                    item['paragraphs'] = ''
             else:
-                item['paragraphs'] = '2'
+                item['paragraphs'] = ''
             if self._outer_time_selector:
                 try:
                     item['time'] = soup2.select(self._outer_time_selector)[0].get_text().strip()
                 except IndexError:
-                    item['time'] = '1'
+                    item['time'] = ''
             else:
-                item['time'] = '2'
+                item['time'] = ''
             if self._outer_source_selector:
                 try:
-                    item['source'] = soup2.select(str(i), self._outer_source_selector)[0].get_text().strip()
+                    item['source'] = soup2.select(self._outer_source_selector)[0].get_text().strip()
                 except IndexError:
-                    item['source'] = '1'
+                    item['source'] = ''
             else:
                 item['source'] = ''
 
@@ -179,7 +178,7 @@ class InfoExtractor(object):
 
     def get_title_policy(self, text, item):
         """Get news title"""
-        if item['title'] and self._outer_title_selector:
+        if item['title'] or self._outer_title_selector:
             return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         soup = BeautifulSoup(text, 'lxml')
         title_select = soup.select(self._title_selector)
@@ -191,7 +190,7 @@ class InfoExtractor(object):
 
     def get_paragraphs_policy(self, text, item):
         """Get news body"""
-        if item['paragraphs'] and self._outer_paragraph_selector:
+        if item['paragraphs'] or self._outer_paragraph_selector:
             return item['paragraphs']
         soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
@@ -221,16 +220,13 @@ class InfoExtractor(object):
 
     def get_time_policy(self, text, item):
         """Get news release time"""
-        if item['time'] and self._outer_time_selector:
+        if item['time'] or self._outer_time_selector:
             return item['time']
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         if not time_select:
             return ""
         publish_time = time_select[0].getText().strip().replace('\n', ' ')
-        publish_time = publish_time.split('�?')[0].strip()       # TODO: Russian.News.Cn & portuguese.xinhuanet.com
-        publish_time = publish_time.replace('WinterIsComing (31822)发表�? ', '')\
-            .replace('\t\t\t\t\t\t新浪微博分享 腾讯分享 豆瓣分享 人人分享 网易分享  来自部门', '')     # TODO: https://www.solidot.org/
         if len(publish_time) > 100:
             publish_time = ''
         '''try:
@@ -239,7 +235,7 @@ class InfoExtractor(object):
                 print(text)
                 print('|' + text.getText())
                 publish_time = text.getText().strip()
-                publish_time = publish_time.split('�?')[0]
+                publish_time = publish_time.split('丨')[0]
                 if publish_time:
                     break
             publish_time = publish_time.split('\n')[0]
@@ -255,7 +251,7 @@ class InfoExtractor(object):
         return publish_time
 
     def get_source_policy(self, text, item):
-        if item['source'] and self._outer_source_selector:
+        if item['source'] or self._outer_source_selector:
             return item['source']
         soup = BeautifulSoup(text, 'lxml')
         source_select = soup.select(self._source_selector)
