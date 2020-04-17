@@ -49,6 +49,11 @@ class InfoExtractor(object):
                        '.source'
 
     _paragraph_selector = 'p'
+    _outer_link_selector = 'a'      # Default selector
+    _outer_title_selector = None
+    _outer_paragraph_selector = None
+    _outer_time_selector = None
+    _outer_source_selector = None
 
     def __init__(self, lang=''):
         self._DEBUG = True
@@ -57,17 +62,32 @@ class InfoExtractor(object):
     def set_list_selector(self, selector):
         self._list_selector = selector
 
-    def set_time_selector(self, selector):
-        self._time_selector = selector
-
     def set_title_selector(self, selector):
         self._title_selector = selector
+
+    def set_paragraph_selector(self, selector):
+        self._paragraph_selector = selector
+
+    def set_time_selector(self, selector):
+        self._time_selector = selector
 
     def set_source_selector(self, selector):
         self._source_selector = selector
 
-    def set_paragraph_selector(self, selector):
-        self._paragraph_selector = selector
+    def set_outer_link_selector(self, selector):
+        self._outer_link_selector = selector
+
+    def set_outer_title_selector(self, selector):
+        self._outer_title_selector = selector
+
+    def set_outer_paragraph_selector(self, selector):
+        self._outer_paragraph_selector = selector
+
+    def set_outer_time_selector(self, selector):
+        self._outer_time_selector = selector
+
+    def set_outer_source_selector(self, selector):
+        self._outer_source_selector = selector
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
@@ -105,15 +125,48 @@ class InfoExtractor(object):
         # print(data)
 
         news_list = []
-        for item in data:
-            link = get_full_link(item.get('href'), listURL)
+        for i in data:
 
-            result = {
-                "title": item.get_text().strip(),
-                "link": link,
+            soup2 = BeautifulSoup(str(i), 'lxml')
+            link_select = soup2.select(self._outer_link_selector)
+            link = get_full_link(link_select[0].get('href'), listURL)
+            item = {
+                # 'title': '',
+                "title": link_select[0].get_text().strip(),
+                'link': link,
                 'id': self._id_policy(link)
             }
-            news_list.append(result)
+            if self._outer_title_selector:
+                try:
+                    item['title'] = soup2.select(self._outer_title_selector)[0].get_text().strip()
+                except IndexError:
+                    item['title'] = '1'
+            else:
+                item['title'] = item['title']
+            if self._outer_paragraph_selector:
+                try:
+                    paragraphs = [x.get_text() for x in soup2.select(self._outer_paragraph_selector)]
+                    item['paragraphs'] = '\n\n'.join(paragraphs) + '\n\n'
+                except IndexError:
+                    item['paragraphs'] = '1'
+            else:
+                item['paragraphs'] = '2'
+            if self._outer_time_selector:
+                try:
+                    item['time'] = soup2.select(self._outer_time_selector)[0].get_text().strip()
+                except IndexError:
+                    item['time'] = '1'
+            else:
+                item['time'] = '2'
+            if self._outer_source_selector:
+                try:
+                    item['source'] = soup2.select(str(i), self._outer_source_selector)[0].get_text().strip()
+                except IndexError:
+                    item['source'] = '1'
+            else:
+                item['source'] = ''
+
+            news_list.append(item)
 
         # Hit cache test here
         # If the list is new, return it.
@@ -126,6 +179,8 @@ class InfoExtractor(object):
 
     def get_title_policy(self, text, item):
         """Get news title"""
+        if item['title'] and self._outer_title_selector:
+            return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         soup = BeautifulSoup(text, 'lxml')
         title_select = soup.select(self._title_selector)
         try:
@@ -136,6 +191,8 @@ class InfoExtractor(object):
 
     def get_paragraphs_policy(self, text, item):
         """Get news body"""
+        if item['paragraphs'] and self._outer_paragraph_selector:
+            return item['paragraphs']
         soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
         # print(paragraph_select)
@@ -164,13 +221,15 @@ class InfoExtractor(object):
 
     def get_time_policy(self, text, item):
         """Get news release time"""
+        if item['time'] and self._outer_time_selector:
+            return item['time']
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         if not time_select:
             return ""
         publish_time = time_select[0].getText().strip().replace('\n', ' ')
-        publish_time = publish_time.split('丨')[0].strip()       # TODO: Russian.News.Cn & portuguese.xinhuanet.com
-        publish_time = publish_time.replace('WinterIsComing (31822)发表于 ', '')\
+        publish_time = publish_time.split('�?')[0].strip()       # TODO: Russian.News.Cn & portuguese.xinhuanet.com
+        publish_time = publish_time.replace('WinterIsComing (31822)发表�? ', '')\
             .replace('\t\t\t\t\t\t新浪微博分享 腾讯分享 豆瓣分享 人人分享 网易分享  来自部门', '')     # TODO: https://www.solidot.org/
         if len(publish_time) > 100:
             publish_time = ''
@@ -180,7 +239,7 @@ class InfoExtractor(object):
                 print(text)
                 print('|' + text.getText())
                 publish_time = text.getText().strip()
-                publish_time = publish_time.split('丨')[0]
+                publish_time = publish_time.split('�?')[0]
                 if publish_time:
                     break
             publish_time = publish_time.split('\n')[0]
@@ -196,7 +255,8 @@ class InfoExtractor(object):
         return publish_time
 
     def get_source_policy(self, text, item):
-
+        if item['source'] and self._outer_source_selector:
+            return item['source']
         soup = BeautifulSoup(text, 'lxml')
         source_select = soup.select(self._source_selector)
         url = item['link']
@@ -275,7 +335,7 @@ class InfoExtractorJSON(InfoExtractor):
             else:
                 item['id'] = self._id_policy(item['link'])
             item['title'] = self._get_item_by_route(i, self._title_router)
-            item['p'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
+            item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item["time"] = self._get_item_by_route(i, self._time_router)
             item["source"] = self._get_item_by_route(i, self._source_router)
             news_list.append(item)
@@ -290,22 +350,22 @@ class InfoExtractorJSON(InfoExtractor):
             return None, len(news_list)
 
     def get_title_policy(self, text, item):
-        if item['title']:
+        if item['title'] and self._title_router:
             return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         return super(InfoExtractorJSON, self).get_title_policy(text, item)
 
     def get_paragraphs_policy(self, text, item):
-        if item['p']:
-            return item['p']
+        if item['paragraphs'] and self._paragraphs_router:
+            return item['paragraphs']
         return super(InfoExtractorJSON, self).get_paragraphs_policy(text, item)
 
     def get_time_policy(self, text, item):
-        if item['time']:
+        if item['time'] and self._time_router:
             return item['time']
         return super(InfoExtractorJSON, self).get_time_policy(text, item)
 
     def get_source_policy(self, text, item):
-        if item['source']:
+        if item['source'] and self._source_router:
             return item['source']
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
 

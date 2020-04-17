@@ -14,7 +14,7 @@ def default_policy(item):
     # disable_notification = 'Ture'
 
     max_len = 1000
-    max_par_num = 10
+    max_par_num = 15
 
     if is_length_immunity(item):
         # full is the full text you want to post
