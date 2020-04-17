@@ -33,7 +33,7 @@ class InfoExtractor(object):
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
-    _cached_list_items = random.randint(1,10**6)
+    _cached_list_items = random.randint(1, 10**6)
 
     _list_selector = '.dataList > .clearfix > h3 > a'
 
@@ -399,7 +399,7 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
-    _cache_list = random.randint(1,10**6)
+    _cache_list = random.randint(1, 10**6)
 
     def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = True
