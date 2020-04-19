@@ -8,13 +8,13 @@ from utils import (
 MAXLEN = 4096
 
 
-def default_policy(item):
+def default_policy(item, max_len=1000, max_par_num=15):
     parse_mode = 'html'
     disable_web_page_preview = 'True'
     # disable_notification = 'Ture'
 
-    max_len = 1000
-    max_par_num = 15
+    max_len = max_len
+    max_par_num = max_par_num
 
     if is_length_immunity(item):
         # full is the full text you want to post
