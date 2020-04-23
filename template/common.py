@@ -286,6 +286,8 @@ class InfoExtractorJSON(InfoExtractor):
                     item = item[key]
         except KeyError:
             return None
+        except IndexError:
+            return None
         return item
 
     def set_list_router(self, router):
@@ -539,6 +541,10 @@ class NewsPostman(object):
         # Get display policy by item info
         po, parse_mode, disable_web_page_preview = self._display_policy(item)
 
+        # Do not post if the message is empty
+        if not po:
+            return None
+
         # Must url encode the text
         if self._DEBUG:
             po += '\nDEBUG #D' + str(news_id)
@@ -617,6 +623,9 @@ class NewsPostman(object):
 
                     # Post the message by api
                     res = self._post(message, item['id'])
+                    if not res:
+                        print('\033[32m' + str(item['id']) + ' empty message!\033[0m')
+                        continue
                     print('\033[32m' + str(item['id']) + ' ' + str(res.status_code) + '\033[0m')
                 else:   # to set old news item as POSTED
                     self._insert_one_item(item['id'])
