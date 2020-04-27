@@ -35,20 +35,11 @@ class InfoExtractor(object):
     # Cache the list webpage and check if modified
     _cached_list_items = random.randint(1, 10**6)
 
-    _list_selector = '.dataList > .clearfix > h3 > a'
-
-    _time_selector = '.h-info > span:nth-child(1), ' \
-                     '.time'
-
-    _title_selector = '.h-title, ' \
-                      '#conTit > h1, ' \
-                      '.title, ' \
-                      '.Btitle'
-
-    _source_selector = '.h-info > span:nth-child(2), ' \
-                       '.source'
-
-    _paragraph_selector = 'p'
+    _list_selector = None
+    _time_selector = None
+    _title_selector = None
+    _source_selector = None
+    _paragraph_selector = 'p'       # Default selector
     _outer_link_selector = 'a'      # Default selector
     _outer_title_selector = None
     _outer_paragraph_selector = None
@@ -180,6 +171,8 @@ class InfoExtractor(object):
         """Get news title"""
         if item['title'] or self._outer_title_selector:
             return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
+        if not self._title_selector:
+            return ''
         soup = BeautifulSoup(text, 'lxml')
         title_select = soup.select(self._title_selector)
         try:
@@ -192,6 +185,8 @@ class InfoExtractor(object):
         """Get news body"""
         if item['paragraphs'] or self._outer_paragraph_selector:
             return item['paragraphs']
+        if not self._paragraph_selector:
+            return None
         soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
         # print(paragraph_select)
@@ -222,6 +217,8 @@ class InfoExtractor(object):
         """Get news release time"""
         if item['time'] or self._outer_time_selector:
             return item['time']
+        if not self._time_selector:
+            return ''
         soup = BeautifulSoup(text, 'lxml')
         time_select = soup.select(self._time_selector)
         if not time_select:
@@ -253,6 +250,8 @@ class InfoExtractor(object):
     def get_source_policy(self, text, item):
         if item['source'] or self._outer_source_selector:
             return item['source']
+        if not self._source_selector:
+            return ''
         soup = BeautifulSoup(text, 'lxml')
         source_select = soup.select(self._source_selector)
         url = item['link']
@@ -387,7 +386,6 @@ class NewsPostman(object):
     _display_policy = default_policy
     _parameter_policy = None
     _TOKEN = os.getenv("TOKEN")
-    # _DATABASE_URL = None
     _db = None
     _table_name = None
     _max_table_rows = math.inf
@@ -623,7 +621,7 @@ class NewsPostman(object):
 
                     # Post the message by api
                     res = self._post(message, item['id'])
-                    if not res:
+                    if res == None:
                         print('\033[32m' + str(item['id']) + ' empty message!\033[0m')
                         continue
                     print('\033[32m' + str(item['id']) + ' ' + str(res.status_code) + '\033[0m')
@@ -669,6 +667,7 @@ class NewsPostman(object):
                     print('Unknown error!!', e)
                     traceback.print_exc()
                     print('\033[0m')
+                    self._cache_list = random.randint(1, 100000)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = random.randint(1, 100000)
