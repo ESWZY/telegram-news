@@ -30,6 +30,7 @@ class InfoExtractor(object):
     _id_policy = default_id_policy
     _list_pre_process_policy = None         # Function that gets json from request response text
     _full_pre_process_policy = None
+    max_post_length = 1000
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
@@ -537,7 +538,7 @@ class NewsPostman(object):
     def _post(self, item, news_id):
 
         # Get display policy by item info
-        po, parse_mode, disable_web_page_preview = self._display_policy(item)
+        po, parse_mode, disable_web_page_preview = self._display_policy(item, max_len=self._extractor.max_post_length)
 
         # Do not post if the message is empty
         if not po:
