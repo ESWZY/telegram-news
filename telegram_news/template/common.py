@@ -110,7 +110,12 @@ class InfoExtractor(object):
             return text
 
     def get_items_policy(self, text, listURL):
-        """Get all items in the list webpage"""
+        """
+        Get all items in the list webpage
+        :param text:
+        :param listURL:
+        :return:
+        """
         soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
         # print(data)
@@ -168,7 +173,12 @@ class InfoExtractor(object):
             return None, len(news_list)
 
     def get_title_policy(self, text, item):
-        """Get news title"""
+        """
+        Get news title
+        :param text:
+        :param item:
+        :return:
+        """
         if item['title'] or self._outer_title_selector:
             return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         if not self._title_selector:
@@ -182,7 +192,12 @@ class InfoExtractor(object):
             return item['title']
 
     def get_paragraphs_policy(self, text, item):
-        """Get news body"""
+        """
+        Get news body
+        :param text:
+        :param item:
+        :return:
+        """
         if item['paragraphs'] or self._outer_paragraph_selector:
             return item['paragraphs']
         if not self._paragraph_selector:
@@ -214,7 +229,12 @@ class InfoExtractor(object):
         return paragraphs
 
     def get_time_policy(self, text, item):
-        """Get news release time"""
+        """
+        Get news release time
+        :param text:
+        :param item:
+        :return:
+        """
         if item['time'] or self._outer_time_selector:
             return item['time']
         if not self._time_selector:
@@ -226,25 +246,6 @@ class InfoExtractor(object):
         publish_time = time_select[0].getText().strip().replace('\n', ' ')
         if len(publish_time) > 100:
             publish_time = ''
-        '''try:
-            publish_time = ''
-            for text in time_select:
-                print(text)
-                print('|' + text.getText())
-                publish_time = text.getText().strip()
-                publish_time = publish_time.split('丨')[0]
-                if publish_time:
-                    break
-            publish_time = publish_time.split('\n')[0]
-            publish_time = publish_time.split('	')[0]
-            # print(time)
-
-            # If time is too long, maybe get irrelevant  info
-            if len(publish_time) > 100:
-                publish_time = ''
-        except IndexError:  # Do not have this element because of missing/403/others
-            publish_time = ""
-        '''
         return publish_time
 
     def get_source_policy(self, text, item):
@@ -310,12 +311,12 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
-    def get_items_policy(self, json_text, listURL):  # -> (list, int)
+    def get_items_policy(self, text, listURL):  # -> (list, int)
         try:
-            list_json = json.loads(json_text)
+            list_json = json.loads(text)
         except json.decoder.JSONDecodeError:
             try:
-                list_json = json.loads(json_text[1:-2])  # Remove brackets and load as json
+                list_json = json.loads(text[1:-2])  # Remove brackets and load as json
             except Exception as e:
                 print('List json decode filed. ', e)
                 return None, 0
@@ -370,7 +371,8 @@ class InfoExtractorJSON(InfoExtractor):
 class InfoExtractorXML(InfoExtractorJSON):
 
     def __init__(self):
-        super().__init__()
+        """As same as InfoExtractor."""
+        super(InfoExtractorXML, self).__init__()
 
     def list_pre_process(self, text, list_url):
         text = super(InfoExtractorXML, self).list_pre_process(text, list_url=list_url)
@@ -439,7 +441,7 @@ class NewsPostman(object):
             os.chdir(work_path)
             lines = f.read()
             f.close()
-            lines = lines.replace(' ' + 'news' + ' ', ' ' + new_table_name + ' ')
+            lines = lines.replace(' ' + 'news', ' ' + new_table_name)
             print('New table name \"' + new_table_name + '\" is settable, setting...')
             self._db.execute(lines)
             self._db.commit()
@@ -475,7 +477,10 @@ class NewsPostman(object):
         self._db.commit()
 
     def not_post_old(self):
-        """Use the same work logic to set old news item as POSTED"""
+        """
+        Use the same work logic to set old news item as POSTED
+        :return:
+        """
         self._action(no_post=True)
 
     def set_list_encoding(self, encode):
@@ -623,7 +628,7 @@ class NewsPostman(object):
 
                     # Post the message by api
                     res = self._post(message, item['id'])
-                    if res == None:
+                    if res is None:
                         print('\033[32m' + str(item['id']) + ' empty message!\033[0m')
                         continue
                     print('\033[32m' + str(item['id']) + ' ' + str(res.status_code) + '\033[0m')
