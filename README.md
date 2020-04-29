@@ -1,8 +1,8 @@
 # Telegram-news
 
-Python program package for automatically fetching news and pushing by telegram bot.
+Python program package for automatically fetching and pushing news by Telegram.
 
-# Simple Start
+## Simple Start
 
 First of all, install telegram_news:
 ```shell script
@@ -15,7 +15,7 @@ In a Python file, write:
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from telegram_news.template.common import *
+from telegram_news.template.common import InfoExtractor, NewsPostman
 
 # Three required fields:
 # Your bot token gotten from @BotFather
@@ -55,7 +55,7 @@ np.poll()
 
 Then, you will get messages like this in your channel or group:
 
->**Bangladesh reports five new deaths due to COVID-19, a daily highest**
+><b>Bangladesh reports five new deaths due to COVID-19, a daily highest</b>
 >
 >Yesterday, [Bangladesh](https://en.wikinews.org/wiki/Bangladesh) has confirmed five new deaths due to [COVID-19](https://en.wikinews.org/wiki/COVID-19) on the day. This is the highest number of fatalities in a day due to the virus. As of yesterday, Bangladesh's [Institute of Epidemiology, Disease Control and Research](https://en.wikipedia.org/wiki/Institute_of_Epidemiology,_Disease_Control_and_Research) (IEDCR) reported the number of recorded infected cases included 114 active cases and 33 recovered cases who were staying home. A total of 17 deaths have been recorded.
 >
@@ -71,6 +71,6 @@ Then, you will get messages like this in your channel or group:
 >
 >[ "[COVID-19 Confirmed Patients](http://119.40.84.187/surveillance/)" - [IEDCR](https://en.wikipedia.org/wiki/IEDCR) ] [[Full text](https://en.wikinews.org/wiki/Bangladesh_reports_five_new_deaths_due_to_COVID-19,_a_daily_highest?dpl_id=2891328)]
 
-# Example
+## Example
 
 An example channel is [@wikinews_en](https://t.me/s/wikinews_en)

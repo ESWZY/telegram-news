@@ -2,7 +2,6 @@
 import os
 import json
 import math
-import random
 import requests
 import threading
 import traceback
@@ -34,7 +33,7 @@ class InfoExtractor(object):
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
-    _cached_list_items = random.randint(1, 10 ** 6)
+    _cached_list_items = os.urandom(10)
 
     _list_selector = None
     _time_selector = None
@@ -392,15 +391,13 @@ class NewsPostman(object):
     _max_table_rows = math.inf
     _list_request_response_encode = 'utf-8'
     _list_request_timeout = 10
-    _list_request_timeout_random_offset = 0
     _full_request_response_encode = 'utf-8'
     _full_request_timeout = 10
-    _full_request_timeout_random_offset = 0
     _max_list_length = math.inf
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
-    _cache_list = random.randint(1, 10 ** 6)
+    _cache_list = os.urandom(10)
 
     def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = False
@@ -427,12 +424,13 @@ class NewsPostman(object):
 
     def set_table_name(self, new_table_name):
         self._table_name = new_table_name
-        rows = self._db.execute(
-            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{0}'".format(new_table_name))
+        rows = self._db.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = :new_table_name ;",
+                                {"new_table_name": new_table_name})
         if rows.fetchone()[0] == 1:
             print('Set table name \"' + new_table_name + '\" successfully, table already exists!')
             return False
         else:
+            # Change dir to here and change back
             # Change dir to here and change back
             work_path = os.getcwd()
             file_path = os.path.abspath(__file__).replace('common.py', '')
@@ -455,23 +453,24 @@ class NewsPostman(object):
         self._max_table_rows = num
 
     def _clean_database(self):
-        rows = self._db.execute("SELECT COUNT(*) FROM " + self._table_name + ";")
+        query = "SELECT COUNT(*) FROM {}".format(self._table_name)
+        rows = self._db.execute(query)
         # If the items in database exceed 2 of 3 of max rows, begin to delete old 1 of 3 of max rows
         rows_num = rows.fetchone()[0]
         # print("rows: ", rows_num)
 
         if rows_num > 2 * ((self._max_table_rows - 3) / 3):
-            delete_how_many = int(self._max_table_rows / 3)
-            print('delete ', delete_how_many)
-            self._db.execute(
-                "DELETE FROM " + self._table_name + " WHERE id IN ( SELECT id FROM " + self._table_name +
-                " ORDER BY id ASC LIMIT " + str(delete_how_many) + ")")
+            delete_number = int(self._max_table_rows / 3)
+            print('delete ', delete_number)
+            query = "DELETE FROM {} WHERE id IN ( SELECT id FROM {} ORDER BY id ASC LIMIT :delete_number )"\
+                .format(self._table_name, self._table_name)
+            self._db.execute(query, {"delete_number": str(delete_number)})
             self._db.commit()
             print('\033[33mClean database finished!\033[0m')
 
     def _insert_one_item(self, news_id):
-        self._db.execute("INSERT INTO " + self._table_name + " (news_id, time) VALUES (:news_id, NOW())",
-                         {"news_id": news_id})
+        query = "INSERT INTO {} (news_id, time) VALUES (:news_id, NOW())".format(self._table_name)
+        self._db.execute(query, {"news_id": news_id})
         # Commit changes to database
         self._db.commit()
 
@@ -485,13 +484,11 @@ class NewsPostman(object):
     def set_full_encoding(self, encode):
         self._full_request_response_encode = encode
 
-    def set_full_request_timeout(self, timeout=10, random_offset=0):
+    def set_full_request_timeout(self, timeout=10):
         self._full_request_timeout = timeout
-        self._full_request_timeout_random_offset = random_offset
 
-    def set_list_request_timeout(self, timeout=10, random_offset=0):
+    def set_list_request_timeout(self, timeout=10):
         self._list_request_timeout = timeout
-        self._list_request_timeout_random_offset = random_offset
 
     def set_max_list_length(self, max_list_length):
         self._max_list_length = max_list_length
@@ -509,8 +506,7 @@ class NewsPostman(object):
             return pure_url
 
     def _get_list(self, list_request_url):  # -> (list, int)
-        timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
-                                                              self._list_request_timeout_random_offset)
+        timeout = self._list_request_timeout
         res = requests.get(list_request_url, headers=self._headers, timeout=timeout)
         # print(res.text)
         if res.status_code == 200:
@@ -526,8 +522,7 @@ class NewsPostman(object):
     def _get_full(self, url, item):
         text = ""
         if url:
-            timeout = self._full_request_timeout + random.randint(-self._full_request_timeout_random_offset,
-                                                                  self._full_request_timeout_random_offset)
+            timeout = self._full_request_timeout
             res = requests.get(url, headers=self._headers, timeout=timeout)
             res.encoding = self._full_request_response_encode
             text = res.text
@@ -567,7 +562,7 @@ class NewsPostman(object):
                 self._insert_one_item(news_id)
             else:
                 # Clear cache when not post
-                self._cache_list = random.randint(1, 10 ** 6)
+                self._cache_list = os.urandom(10)
 
                 print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code) + '\033[0m')
                 print(res.text)
@@ -579,8 +574,8 @@ class NewsPostman(object):
         return res
 
     def _is_posted(self, news_id):
-        rows = self._db.execute("SELECT * FROM " + self._table_name + " WHERE news_id = :news_id",
-                                {"news_id": str(news_id)})
+        query = "SELECT * FROM {} WHERE news_id = :news_id".format(self._table_name)
+        rows = self._db.execute(query, {"news_id": str(news_id)})
         if rows.rowcount == 0:
             return False
         else:
@@ -674,10 +669,10 @@ class NewsPostman(object):
                     print('Unknown error!!', e)
                     traceback.print_exc()
                     print('\033[0m')
-                    self._cache_list = random.randint(1, 100000)
+                    self._cache_list = os.urandom(10)
                 except Exception:
                     # Clear cache when any error
-                    self._cache_list = random.randint(1, 100000)
+                    self._cache_list = os.urandom(10)
                     print('\033[31merror in', self._tag)
                     traceback.print_exc()
                     print('\033[0m')
