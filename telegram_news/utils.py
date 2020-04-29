@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import json
-
 import xmltodict
+from bs4 import BeautifulSoup
 
 try:
     import urlparse
@@ -9,8 +9,6 @@ try:
 except Exception:  # For Python 3
     import urllib.parse as urlparse
     from urllib.parse import urlencode
-
-from bs4 import BeautifulSoup
 
 LOGO = r'''
       ______     __

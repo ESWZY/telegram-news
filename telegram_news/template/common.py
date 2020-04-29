@@ -1,21 +1,21 @@
 # -*- coding: UTF-8 -*-
+import os
 import json
 import math
-import os
 import random
+import requests
 import threading
 import traceback
-from time import sleep
-
-import requests
 import sqlalchemy
+from time import sleep
 from bs4 import BeautifulSoup
 
-from displaypolicy import (
+from ..displaypolicy import (
     default_policy,
     default_id_policy,
 )
-from utils import (
+
+from ..utils import (
     keep_link,
     str_url_encode,
     is_single_media,

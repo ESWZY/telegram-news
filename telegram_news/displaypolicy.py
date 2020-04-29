@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import re
 
-from utils import (
+from .utils import (
     is_length_immunity,
 )
 
