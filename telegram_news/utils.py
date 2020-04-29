@@ -66,7 +66,7 @@ def keep_link(text, url):
     """Remove tags except <a></a>. Otherwise, telegram api will not parse"""
     if not text:
         return ""
-    text = text.replace('<br>','\n')
+    text = text.replace('<br>', '\n')
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
     # print(soup.select('img, a'))
@@ -97,7 +97,7 @@ def keep_link(text, url):
             # Get plain text and concatenate with link
             result += keep_img(other[0], url)
 
-            # Not keep <a> without text or link
+            # Not keep <a> without any text or link
             if content:
                 if link_url:
                     link_url = get_full_link(link_url, url)

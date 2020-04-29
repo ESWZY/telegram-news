@@ -28,20 +28,20 @@ class InfoExtractor(object):
     _listURLs = []
     _lang = ""
     _id_policy = default_id_policy
-    _list_pre_process_policy = None         # Function that gets json from request response text
+    _list_pre_process_policy = None  # Function that gets json from request response text
     _full_pre_process_policy = None
     max_post_length = 1000
 
     # Maybe cache feature should be implemented at here
     # Cache the list webpage and check if modified
-    _cached_list_items = random.randint(1, 10**6)
+    _cached_list_items = random.randint(1, 10 ** 6)
 
     _list_selector = None
     _time_selector = None
     _title_selector = None
     _source_selector = None
-    _paragraph_selector = 'p'       # Default selector
-    _outer_link_selector = 'a'      # Default selector
+    _paragraph_selector = 'p'  # Default selector
+    _outer_link_selector = 'a'  # Default selector
     _outer_title_selector = None
     _outer_paragraph_selector = None
     _outer_time_selector = None
@@ -258,7 +258,7 @@ class InfoExtractor(object):
         url = item['link']
         try:
             # Maybe source is a link
-            source = keep_link(str(source_select[0]), url).strip().replace('\n', '').replace(' '*60, ' / ')
+            source = keep_link(str(source_select[0]), url).strip().replace('\n', '').replace(' ' * 60, ' / ')
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
         return source
@@ -311,7 +311,7 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
-    def get_items_policy(self, json_text, listURL):     # -> (list, int)
+    def get_items_policy(self, json_text, listURL):  # -> (list, int)
         try:
             list_json = json.loads(json_text)
         except json.decoder.JSONDecodeError:
@@ -400,7 +400,7 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
-    _cache_list = random.randint(1, 10**6)
+    _cache_list = random.randint(1, 10 ** 6)
 
     def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
         self._DEBUG = False
@@ -508,7 +508,7 @@ class NewsPostman(object):
         else:
             return pure_url
 
-    def _get_list(self, list_request_url):     # -> (list, int)
+    def _get_list(self, list_request_url):  # -> (list, int)
         timeout = self._list_request_timeout + random.randint(-self._list_request_timeout_random_offset,
                                                               self._list_request_timeout_random_offset)
         res = requests.get(list_request_url, headers=self._headers, timeout=timeout)
@@ -567,7 +567,7 @@ class NewsPostman(object):
                 self._insert_one_item(news_id)
             else:
                 # Clear cache when not post
-                self._cache_list = random.randint(1, 10**6)
+                self._cache_list = random.randint(1, 10 ** 6)
 
                 print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code) + '\033[0m')
                 print(res.text)
@@ -586,7 +586,7 @@ class NewsPostman(object):
         else:
             return True
 
-    def _action(self, no_post=False):     # -> (list, int)
+    def _action(self, no_post=False):  # -> (list, int)
         duplicate_list = []
         total = 0
         for link in self._listURLs:
@@ -632,7 +632,7 @@ class NewsPostman(object):
                         print('\033[32m' + str(item['id']) + ' empty message!\033[0m')
                         continue
                     print('\033[32m' + str(item['id']) + ' ' + str(res.status_code) + '\033[0m')
-                else:   # to set old news item as POSTED
+                else:  # to set old news item as POSTED
                     self._insert_one_item(item['id'])
                     print('Get ' + item['id'] + ', but no action!')
                 total += 1
