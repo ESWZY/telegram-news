@@ -433,8 +433,14 @@ class NewsPostman(object):
             print('Set table name \"' + new_table_name + '\" successfully, table already exists!')
             return False
         else:
-            f = open("table.sql")
+            # Change dir to here and change back
+            work_path = os.getcwd()
+            file_path = os.path.abspath(__file__).replace('common.py', '')
+            os.chdir(file_path)
+            f = open("../table.sql")
+            os.chdir(work_path)
             lines = f.read()
+            f.close()
             lines = lines.replace(' ' + 'news' + ' ', ' ' + new_table_name + ' ')
             print('New table name \"' + new_table_name + '\" is settable, setting...')
             self._db.execute(lines)
