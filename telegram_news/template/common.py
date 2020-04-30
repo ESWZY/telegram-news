@@ -544,7 +544,7 @@ class NewsPostman(object):
             os.chdir(work_path)
             lines = f.read()
             f.close()
-            lines = lines.replace(' ' + 'news', ' ' + new_table_name)
+            lines = lines.replace(' ' + 'news' + '\n', ' ' + new_table_name + '\n')
             print('New table name \"' + new_table_name + '\" is settable, setting...')
             self._db.execute(lines)
             self._db.commit()
