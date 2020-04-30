@@ -1,6 +1,12 @@
 # Telegram-news
 
-Python program package for automatically fetching and pushing news by Telegram.
+[![PyPI](https://img.shields.io/pypi/v/telegram-news)](https://pypi.org/project/telegram-news/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/telegram-news)
+[![License](https://img.shields.io/github/license/ESWZY/telegram-news)](https://github.com/ESWZY/telegram-news/blob/master/LICENSE)
+![PyPI - Downloads](https://img.shields.io/pypi/dd/telegram-news)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3c07fed525da42e89dd3d0376457b4d2)](https://app.codacy.com/manual/ESWZY/telegram-news?utm_source=github.com&utm_medium=referral&utm_content=ESWZY/telegram-news&utm_campaign=Badge_Grade_Dashboard)
+
+Python package for automatically fetching and pushing news by Telegram.
 
 ## Simple Start
 

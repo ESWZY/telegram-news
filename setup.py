@@ -9,12 +9,12 @@ requires = [
     'xmltodict',
 ]
 
-DESCRIPTION = 'A framework for multi-source news feed by Telegram'
+DESCRIPTION = 'Python package for automatically fetching and pushing news by Telegram.'
 LONG_DESCRIPTION = open("README.md").read()
 
 setup(
     name='telegram-news',
-    version='0.1.1',
+    version='0.1.2',
     author='ESWZY',
     author_email='0903wzy@gmail.com',
     url='https://github.com/ESWZY/telegram-news',
