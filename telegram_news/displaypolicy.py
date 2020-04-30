@@ -1,4 +1,11 @@
 # -*- coding: UTF-8 -*-
+
+"""
+Display policies and id policies for different situation.
+
+Add new ones when possible.
+"""
+
 import re
 
 from .utils import (
@@ -9,6 +16,14 @@ MAXLEN = 4096
 
 
 def default_policy(item, max_len=1000, max_par_num=15):
+    """
+    Generate formatted message from item, the default way.
+
+    :param item: item dict.
+    :param max_len: max message length.
+    :param max_par_num: max paragraph number.
+    :return: formatted forward message, parse mode (HTML or Markdown), disable web page preview flag.
+    """
     parse_mode = 'html'
     disable_web_page_preview = 'True'
     # disable_notification = 'Ture'
@@ -62,4 +77,11 @@ def default_policy(item, max_len=1000, max_par_num=15):
 
 
 def default_id_policy(self, link):
+    """
+    Generate id from link, the default way.
+
+    :param self: InfoExtractor.
+    :param link: the link of news.
+    :return: id string.
+    """
     return re.findall('\\d+', link)[-1]

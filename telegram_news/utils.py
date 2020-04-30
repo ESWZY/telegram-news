@@ -1,4 +1,11 @@
 # -*- coding: UTF-8 -*-
+
+"""
+This module provides some utilities for development.
+
+Add new ones when possible.
+"""
+
 import json
 import xmltodict
 from bs4 import BeautifulSoup
@@ -22,6 +29,13 @@ LOGO = r'''
 
 
 def keep_img(text, url):
+    """
+    Remove tags except media <img>.
+
+    :param text: raw text string.
+    :param url: base url of the website.
+    :return: processed string.
+    """
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
 
@@ -63,13 +77,17 @@ def keep_img(text, url):
 
 
 def keep_link(text, url):
-    """Remove tags except <a></a>. Otherwise, telegram api will not parse"""
+    """
+    Remove tags except <a></a> and <img>. Otherwise, Telegram API will not parse.
+
+    :param text: raw text string.
+    :param url: base url of the website.
+    :return: processed string.
+    """
     if not text:
         return ""
     text = text.replace('<br>', '\n')
     soup = BeautifulSoup(text, 'lxml')
-    # print(text)
-    # print(soup.select('img, a'))
 
     # No link here, return directly
     if not soup.select('a'):
@@ -113,6 +131,12 @@ def keep_link(text, url):
 
 
 def is_single_media(text):
+    """
+    Judge whether the paragraph is an single media.
+
+    :param text: one paragraph string.
+    :return: bool.
+    """
     soup = BeautifulSoup(text, 'lxml')
 
     # No <a> tag here, return directly
@@ -120,7 +144,6 @@ def is_single_media(text):
         return False
     else:
         anchor = soup.select('a')[0]
-        # print(anchor)
 
         if anchor.getText() == '[Media]':
             if text.replace(str(anchor), '') == '':
@@ -129,11 +152,23 @@ def is_single_media(text):
 
 
 def str_url_encode(text):
+    """
+    Encode package before send to Telegram API.
+
+    :param text: string.
+    :return: string.
+    """
     return urlparse.quote(text)
 
 
 def get_full_link(link, base_url):
-    """Parse the relative link to absolute link."""
+    """
+    Parse the relative link to absolute link.
+
+    :param link: relative path or absolute path.
+    :param base_url: base url.
+    :return: full url.
+    """
     if link is not None:
         return urlparse.urljoin(base_url, link)
     else:
@@ -141,7 +176,13 @@ def get_full_link(link, base_url):
 
 
 def add_parameters_into_url(url, parameters):
-    """The url might already have GET parameters or not. parameters is a dict"""
+    """
+    Add parameters onto url. The url might already have GET parameters. parameters in a dict.
+
+    :param url: url string.
+    :param parameters: dict.
+    :return: url string.
+    """
     url_parts = list(urlparse.urlparse(url))
     query = dict(urlparse.parse_qsl(url_parts[4]))
     query.update(parameters)
@@ -150,6 +191,12 @@ def add_parameters_into_url(url, parameters):
 
 
 def is_length_immunity(item):
+    """
+    Judge whether follow the length rule. Rewrite it when possible.
+
+    :param item: item dict.
+    :return: bool.
+    """
     if item['title']:
         if item['title'][:4] == '综合消息':
             return True
@@ -161,6 +208,12 @@ def is_length_immunity(item):
 
 
 def xml_to_json(xml_str):
+    """
+    Convert from XML format string to JSON format string.
+
+    :param xml_str: XML format string.
+    :return: JSON format string.
+    """
     xml_parse = xmltodict.parse(xml_str)
     json_str = json.dumps(xml_parse)
     return json_str

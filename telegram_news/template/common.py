@@ -1,20 +1,29 @@
 # -*- coding: UTF-8 -*-
-import os
+
+"""
+Base template Info Extractor and News Postman for Telegram-news.
+
+Basic Info Extractor and News Postman for standard HTML data and extended
+class for JSON and XML format data. Maybe have more subclasses for other
+situations.
+"""
+
 import json
 import math
+import os
 import requests
+import sqlalchemy
 import threading
 import traceback
-import sqlalchemy
-from time import sleep
 from bs4 import BeautifulSoup
+from time import sleep
 
 from ..displaypolicy import (
     default_policy,
     default_id_policy,
 )
-
 from ..utils import (
+    LOGO,
     keep_link,
     str_url_encode,
     is_single_media,
@@ -24,11 +33,40 @@ from ..utils import (
 
 
 class InfoExtractor(object):
+    """
+    Information Extractor class.
+
+    Information Extractor class is a class that process raw request data
+    and convert to a formatted data.
+
+    Attributes:
+        _listURLs
+        _lang
+        _id_policy
+        _list_pre_process_policy
+        _full_pre_process_policy
+        max_post_length
+        _cached_list_items
+        _list_selector
+        _time_selector
+        _title_selector
+        _source_selector
+        _paragraph_selector
+        _outer_link_selector
+        _outer_title_selector
+        _outer_paragraph_selector
+        _outer_time_selector
+        _outer_source_selector
+    """
+
     _listURLs = []
     _lang = ""
     _id_policy = default_id_policy
-    _list_pre_process_policy = None  # Function that gets json from request response text
+
+    # Functions that get preprocessed text from raw request response text.
+    _list_pre_process_policy = None
     _full_pre_process_policy = None
+
     max_post_length = 1000
 
     # Maybe cache feature should be implemented at here
@@ -47,6 +85,7 @@ class InfoExtractor(object):
     _outer_source_selector = None
 
     def __init__(self, lang=''):
+        """Construct the class."""
         self._DEBUG = True
         self._lang = lang
 
@@ -111,10 +150,11 @@ class InfoExtractor(object):
 
     def get_items_policy(self, text, listURL):
         """
-        Get all items in the list webpage
+        Get all items in the list webpage.
+
         :param text:
         :param listURL:
-        :return:
+        :return: item dict list.
         """
         soup = BeautifulSoup(text, 'lxml')
         data = soup.select(self._list_selector)
@@ -174,10 +214,11 @@ class InfoExtractor(object):
 
     def get_title_policy(self, text, item):
         """
-        Get news title
-        :param text:
-        :param item:
-        :return:
+        Get news title.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: title string.
         """
         if item['title'] or self._outer_title_selector:
             return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
@@ -193,10 +234,11 @@ class InfoExtractor(object):
 
     def get_paragraphs_policy(self, text, item):
         """
-        Get news body
-        :param text:
-        :param item:
-        :return:
+        Get news body.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: concatenated paragraphs string.
         """
         if item['paragraphs'] or self._outer_paragraph_selector:
             return item['paragraphs']
@@ -230,10 +272,11 @@ class InfoExtractor(object):
 
     def get_time_policy(self, text, item):
         """
-        Get news release time
-        :param text:
-        :param item:
-        :return:
+        Get news release time.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: time string.
         """
         if item['time'] or self._outer_time_selector:
             return item['time']
@@ -249,6 +292,13 @@ class InfoExtractor(object):
         return publish_time
 
     def get_source_policy(self, text, item):
+        """
+        Get news source.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: source string.
+        """
         if item['source'] or self._outer_source_selector:
             return item['source']
         if not self._source_selector:
@@ -265,6 +315,23 @@ class InfoExtractor(object):
 
 
 class InfoExtractorJSON(InfoExtractor):
+    """
+    Information Extractor class for JSON.
+
+    Information Extractor class for JSON is a class that process raw request data
+    and convert to a formatted data, especially for a format of JSON.
+
+    Attributes:
+        All the attributes of InfoExtractor and
+        _list_router
+        _id_router
+        _link_router
+        _title_router
+        _paragraphs_router
+        _time_router
+        _source_router
+    """
+
     _list_router = None
     _id_router = None
     _link_router = None
@@ -274,7 +341,8 @@ class InfoExtractorJSON(InfoExtractor):
     _source_router = None
 
     def __init__(self):
-        super().__init__()
+        """As same as InfoExtractor."""
+        super(InfoExtractorJSON, self).__init__()
 
     @staticmethod
     def _get_item_by_route(item, router):
@@ -369,6 +437,15 @@ class InfoExtractorJSON(InfoExtractor):
 
 
 class InfoExtractorXML(InfoExtractorJSON):
+    """
+    Information Extractor class for JSON.
+
+    Information Extractor class for JSON is a class that process raw request data
+    and convert to a formatted data, especially for a format of JSON.
+
+    Attributes:
+        As same as InfoExtractorJSON.
+    """
 
     def __init__(self):
         """As same as InfoExtractor."""
@@ -380,6 +457,32 @@ class InfoExtractorXML(InfoExtractorJSON):
 
 
 class NewsPostman(object):
+    """
+    News Postman class.
+
+    News Postman class is a class that deals with network and database.
+
+    Attributes:
+        _listURLs
+        _tag
+        _sendList
+        _headers
+        _proxies
+        _display_policy
+        _parameter_policy
+        _TOKEN
+        _db
+        _table_name
+        _max_table_rows
+        _list_request_response_encode
+        _list_request_timeout
+        _full_request_response_encode
+        _full_request_timeout
+        _max_list_length
+        _extractor
+        _cache_list
+    """
+
     _listURLs = []
     _tag = ""
     _sendList = []
@@ -402,6 +505,7 @@ class NewsPostman(object):
     _cache_list = os.urandom(10)
 
     def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
+        """Construct the class by setting key attributes."""
         self._DEBUG = False
         self._listURLs = listURLs
         self._sendList = sendList
@@ -422,7 +526,6 @@ class NewsPostman(object):
 
     def set_database(self, db):
         self._db = db
-        # self._db = scoped_session(sessionmaker(bind=create_engine(self._DATABASE_URL)))
 
     def set_table_name(self, new_table_name):
         self._table_name = new_table_name
@@ -464,7 +567,7 @@ class NewsPostman(object):
         if rows_num > 2 * ((self._max_table_rows - 3) / 3):
             delete_number = int(self._max_table_rows / 3)
             print('delete ', delete_number)
-            query = "DELETE FROM {} WHERE id IN ( SELECT id FROM {} ORDER BY id ASC LIMIT :delete_number )"\
+            query = "DELETE FROM {} WHERE id IN ( SELECT id FROM {} ORDER BY id ASC LIMIT :delete_number )" \
                 .format(self._table_name, self._table_name)
             self._db.execute(query, {"delete_number": str(delete_number)})
             self._db.commit()
@@ -477,10 +580,7 @@ class NewsPostman(object):
         self._db.commit()
 
     def not_post_old(self):
-        """
-        Use the same work logic to set old news item as POSTED
-        :return:
-        """
+        """Use the same work logic to set old news item as POSTED."""
         self._action(no_post=True)
 
     def set_list_encoding(self, encode):
@@ -693,16 +793,36 @@ class NewsPostman(object):
 
 
 class NewsPostmanJSON(NewsPostman):
+    """
+    News Postman class for JSON.
+
+    News Postman class for JSON is as same as News Postman class, but only be used
+    when process JSON formatted data.
+
+    Attributes:
+        As same as NewsPostman.
+    """
 
     def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+        """As same as NewsPostman."""
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, tag=tag,
                                               display_policy=display_policy, db=db)
         self._extractor = InfoExtractorJSON()
 
 
 class NewsPostmanXML(NewsPostman):
+    """
+    News Postman class for XML.
+
+    News Postman class for XML is as same as News Postman class, but only be used
+    when process XML formatted data.
+
+    Attributes:
+            As same as NewsPostman.
+    """
 
     def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+        """As same as NewsPostman."""
         super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, tag=tag,
                                              display_policy=display_policy, db=db)
         self._extractor = InfoExtractorXML()

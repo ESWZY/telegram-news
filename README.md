@@ -12,6 +12,7 @@ pip install telegram_news
 In a Python file, write:
 
 ```python
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
