@@ -11,16 +11,21 @@ situations.
 import json
 import math
 import os
-import requests
-import sqlalchemy
 import threading
 import traceback
-from bs4 import BeautifulSoup
 from time import sleep
+
+import requests
+import sqlalchemy
+from bs4 import BeautifulSoup
 
 from ..displaypolicy import (
     default_policy,
     default_id_policy,
+)
+from ..ratelimit import (
+    sleep_and_retry,
+    RateLimitDecorator as limits
 )
 from ..utils import (
     LOGO,
@@ -641,6 +646,8 @@ class NewsPostman(object):
 
         return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
+    @sleep_and_retry
+    @limits(calls=1, period=3)
     def _post(self, item, news_id):
 
         # Get display policy by item info
