@@ -475,7 +475,7 @@ class NewsPostman(object):
         _proxies
         _display_policy
         _parameter_policy
-        _TOKEN
+        _TOKENS
         _db
         _table_name
         _max_table_rows
@@ -495,7 +495,7 @@ class NewsPostman(object):
     _proxies = None
     _display_policy = default_policy
     _parameter_policy = None
-    _TOKEN = os.getenv("TOKEN")
+    _TOKENS = [os.getenv("TOKEN"), ]
     _db = None
     _table_name = None
     _max_table_rows = math.inf
@@ -526,8 +526,14 @@ class NewsPostman(object):
             }
         self._proxies = proxies
 
-    def set_bot_token(self, new_token):
-        self._TOKEN = new_token
+    @staticmethod
+    def set_bot_token(new_token):
+        """Set one token only."""
+        NewsPostman._TOKENS = [new_token, ]
+
+    @staticmethod
+    def add_bot_token(new_token):
+        NewsPostman._TOKENS.append(new_token)
 
     def set_database(self, db):
         self._db = db
@@ -541,14 +547,16 @@ class NewsPostman(object):
             return False
         else:
             # Change dir to here and change back
-            # Change dir to here and change back
             work_path = os.getcwd()
             file_path = os.path.abspath(__file__).replace('common.py', '')
             os.chdir(file_path)
             f = open("../table.sql")
             os.chdir(work_path)
+
+            # Get SQL statement
             lines = f.read()
             f.close()
+
             lines = lines.replace(' ' + 'news' + '\n', ' ' + new_table_name + '\n')
             print('New table name \"' + new_table_name + '\" is settable, setting...')
             self._db.execute(lines)
@@ -647,7 +655,7 @@ class NewsPostman(object):
         return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
 
     @sleep_and_retry
-    @limits(calls=1, period=3)
+    @limits(calls=1, period=1)
     def _post(self, item, news_id):
 
         # Get display policy by item info
@@ -666,23 +674,46 @@ class NewsPostman(object):
         for chat_id in self._sendList:
             if not chat_id:
                 continue
-            # https://core.telegram.org/bots/api#sendmessage
-            post_url = 'https://api.telegram.org/bot' + self._TOKEN + '/sendMessage?chat_id=' + chat_id + '&text=' + \
-                       po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
-            res = requests.get(post_url, proxies=self._proxies)
-            if res.status_code == 200:
-                self._insert_one_item(news_id)
-            else:
-                # Clear cache when not post
-                self._cache_list = os.urandom(10)
+            for token in self._TOKENS:
+                if not token:
+                    continue
+                # https://core.telegram.org/bots/api#sendmessage
+                post_url = 'https://api.telegram.org/bot' + token + '/sendMessage?chat_id=' + chat_id + '&text=' + \
+                           po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+                res = requests.get(post_url, proxies=self._proxies)
 
-                print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code) + '\033[0m')
-                print(res.text)
-                try:
-                    res_time = json.loads(res.text)['parameters']['retry_after']
-                    sleep(res_time)
-                except KeyError:
-                    raise Exception('Telegram API error!')
+                # If post successfully, record and do next.
+                if res.status_code == 200:
+                    self._insert_one_item(news_id)
+                    break
+
+                # If not success because of 429 error, retry by other bots.
+                elif res.status_code == 429:
+
+                    # If no more bot tokens for retrying.
+                    if token is self._TOKENS[-1]:
+                        print('\033[31mWarning! 429 happened in ' + self._tag + '!\033[0m')
+
+                        # Sleep time is determined by the last bot!
+                        sleep_time = json.loads(res.text)['parameters']['retry_after']
+                        sleep(sleep_time)
+
+                        # Clear cache if not post.
+                        self._cache_list = os.urandom(10)
+
+                        # Non-first channel has the risk of lost message
+                        return res
+                    else:
+                        print("Retry " + str(self._TOKENS.index(token) + 1) + " time(s) for " + self._tag)
+                        continue
+
+                # Other unknown error.
+                else:
+                    # Clear cache if not post
+                    self._cache_list = os.urandom(10)
+                    print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+                    print(res.text)
+                    print('Telegram API error in ' + self._tag + '!\033[0m')
         return res
 
     def _is_posted(self, news_id):
@@ -777,11 +808,12 @@ class NewsPostman(object):
                     print(e)
                     print('\033[0m')
                 except sqlalchemy.exc.InvalidRequestError as e:
+                    # Clear cache when any error
+                    self._cache_list = os.urandom(10)
                     print('\033[31merror in', self._tag)
                     print('Unknown error!!', e)
                     traceback.print_exc()
                     print('\033[0m')
-                    self._cache_list = os.urandom(10)
                 except Exception:
                     # Clear cache when any error
                     self._cache_list = os.urandom(10)
@@ -792,7 +824,7 @@ class NewsPostman(object):
                 sleep(sleep_time)
 
         # Boot check
-        if not self._table_name or not self._TOKEN or not self._db:
+        if not self._table_name or self._TOKENS.count(None) == len(self._TOKENS) or not self._db:
             print('\033[31m' + self._tag + " boot failed! Nothing happened!\033[0m")
             return
         t = threading.Thread(target=work)
