@@ -28,7 +28,6 @@ from ..ratelimit import (
     RateLimitDecorator as limits
 )
 from ..utils import (
-    LOGO,
     keep_link,
     str_url_encode,
     is_single_media,
@@ -865,6 +864,3 @@ class NewsPostmanXML(NewsPostman):
         super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, tag=tag,
                                              display_policy=display_policy, db=db)
         self._extractor = InfoExtractorXML()
-
-
-print("DELETED!!")

@@ -22,7 +22,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from telegram_news.template.common import InfoExtractor, NewsPostman
+from telegram_news.template import InfoExtractor, NewsPostman
 
 # Three required fields:
 # Your bot token gotten from @BotFather

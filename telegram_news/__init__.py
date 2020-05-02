@@ -1,7 +1,15 @@
 # -*- coding: UTF-8 -*-
 
-"""This module provides templates, utilities and display policies."""
+"""This package provides templates, utilities and display policies."""
 
-from .displaypolicy import *
-from .template import *
-from .utils import *
+LOGO = r'''
+      ______     __
+     /_  __/__  / /__  ____ __________ _____ ___        ____  ___ _      _______
+      / / / _ \/ / _ \/ __ `/ ___/ __ `/ __ `__ \______/ __ \/ _ \ | /| / / ___/
+     / / /  __/ /  __/ /_/ / /  / /_/ / / / / / /_____/ / / /  __/ |/ |/ (__  )
+    /_/  \___/_/\___/\__, /_/   \__,_/_/ /_/ /_/     /_/ /_/\___/|__/|__/____/
+                    /____/
+	                https://github.com/ESWZY/telegram-news
+'''
+
+__all__ = ['LOGO', ]
