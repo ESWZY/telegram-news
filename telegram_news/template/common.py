@@ -566,7 +566,7 @@ class NewsPostman(object):
     def set_max_table_rows(self, num, verbose=True):
         if verbose:
             print('Warning, the max_table_rows must at least 3 TIMES than the real list length!')
-            print('And to avoid problems caused by unstable list, 6 TIMES is a good choice!')
+            print('And to avoid problems caused by unstable list, the number may be higher!')
         self._max_table_rows = num
 
     def _clean_database(self):
@@ -687,7 +687,7 @@ class NewsPostman(object):
                            po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
                 res = requests.get(post_url, proxies=self._proxies)
 
-                # If post successfully, record and do next.
+                # If post successfully, record and post to next channel.
                 if res.status_code == 200:
                     isposted_flags[i] = 1
 
@@ -711,6 +711,12 @@ class NewsPostman(object):
                         # Clear cache if not post.
                         self._cache_list = os.urandom(10)
 
+                        # The last post succeed but this one failed, do it again!
+                        if isposted_flags[i] == 0 and i != 0 and isposted_flags[:i].count(1) >= 1:
+                            candidate_list.append(chat_id)
+                            isposted_flags.append(0)
+                            continue
+
                         # Non-first channel has the risk of lost message
                         return res
                     else:
@@ -721,7 +727,7 @@ class NewsPostman(object):
                 else:
                     # Clear cache if not post
                     self._cache_list = os.urandom(10)
-                    print('\033[31mERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
+                    print('\033[31mFATAL ERROR! NOT POSTED BECAUSE OF ' + str(res.status_code))
                     print(res.text)
                     print('Telegram API error in ' + self._tag + '!\033[0m')
         return res
