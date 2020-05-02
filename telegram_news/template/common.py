@@ -670,12 +670,18 @@ class NewsPostman(object):
         po = str_url_encode(po)
 
         res = None
-        for chat_id in self._sendList:
+
+        isposted_flags = [0] * len(self._sendList)
+        candidate_list = self._sendList
+
+        for i, chat_id in enumerate(candidate_list):
             if not chat_id:
                 continue
+
             for token in self._TOKENS:
                 if not token:
                     continue
+
                 # https://core.telegram.org/bots/api#sendmessage
                 post_url = 'https://api.telegram.org/bot' + token + '/sendMessage?chat_id=' + chat_id + '&text=' + \
                            po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
@@ -683,7 +689,12 @@ class NewsPostman(object):
 
                 # If post successfully, record and do next.
                 if res.status_code == 200:
-                    self._insert_one_item(news_id)
+                    isposted_flags[i] = 1
+
+                    # Only record once when successfully posted.
+                    if isposted_flags.count(1) == 1:
+                        self._insert_one_item(news_id)
+
                     break
 
                 # If not success because of 429 error, retry by other bots.
