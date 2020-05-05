@@ -33,6 +33,7 @@ from ..utils import (
     is_single_media,
     get_full_link,
     xml_to_json,
+    add_parameters_into_url,
 )
 
 
@@ -503,6 +504,7 @@ class NewsPostman(object):
     _full_request_response_encode = 'utf-8'
     _full_request_timeout = 10
     _max_list_length = math.inf
+    _send_method = "sendMessage"
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
@@ -533,6 +535,13 @@ class NewsPostman(object):
     @staticmethod
     def add_bot_token(new_token):
         NewsPostman._TOKENS.append(new_token)
+
+    @staticmethod
+    def is_method_allowed(method):
+        if method in AVAILABLE_METHOD:
+            return True
+        else:
+            return False
 
     def set_database(self, db):
         self._db = db
@@ -568,6 +577,13 @@ class NewsPostman(object):
             print('Warning, the max_table_rows must at least 3 TIMES than the real list length!')
             print('And to avoid problems caused by unstable list, the number may be higher!')
         self._max_table_rows = num
+
+    def select_send_method(self, method="sendMessage"):
+        if is_method_allowed(method):
+            self._send_method = method
+            return True
+        else:
+            return False
 
     def _clean_database(self):
         query = "SELECT COUNT(*) FROM {}".format(self._table_name)
@@ -682,9 +698,23 @@ class NewsPostman(object):
                 if not token:
                     continue
 
+                # Method logic
+                if self._send_method == 'sendMessage' or self._send_method == 'editMessageText':
+                    text_param = 'text'
+                else:
+                    text_param = 'caption'
+                if self._send_method == 'sendPhoto':
+                    other_param = {
+                        'photo': 'https://telegram.org/img/t_logo.png'      # TODO: add photo logic
+                    }
+                else:
+                    other_param = {}
+
                 # https://core.telegram.org/bots/api#sendmessage
-                post_url = 'https://api.telegram.org/bot' + token + '/sendMessage?chat_id=' + chat_id + '&text=' + \
-                           po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
+                post_url = 'https://api.telegram.org/bot' + token + '/' + self._send_method + '?chat_id=' + chat_id + \
+                           '&' + text_param + '=' + po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' \
+                           + disable_web_page_preview
+                post_url = add_parameters_into_url(post_url, other_param)
                 res = requests.get(post_url, proxies=self._proxies)
 
                 # If post successfully, record and post to next channel.
