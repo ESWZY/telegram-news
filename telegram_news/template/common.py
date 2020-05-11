@@ -631,7 +631,7 @@ class NewsPostman(object):
             text = self._extractor.list_pre_process(res.text, list_request_url)
             return self._extractor.get_items_policy(text, list_request_url)
         else:
-            print('\033[31mList URL error exception! ' + str(res.status_code) + '\033[0m')
+            print('\033[31mList URL error exception in ' + self._tag + '! ' + str(res.status_code) + '\033[0m')
             if res.status_code == 403:
                 print('Maybe something not work.')
             return [], 0
@@ -815,27 +815,38 @@ class NewsPostman(object):
                     print('\033[31mwarning in', self._tag)
                     print(e)
                     print('\033[0m')
+                    self._cache_list = os.urandom(10)
+                    # Clear cache when any error
+                    self._extractor._cached_list_items = os.urandom(10)
                 except requests.exceptions.ConnectTimeout as e:
                     print('\033[31mwarning in', self._tag)
                     print(e)
                     print('\033[0m')
+                    # Clear cache when any error
+                    self._cache_list = os.urandom(10)
+                    self._extractor._cached_list_items = os.urandom(10)
                 except requests.exceptions.ConnectionError as e:
                     print('\033[31mwarning in', self._tag)
                     print(e)
                     print('\033[0m')
-                except sqlalchemy.exc.InvalidRequestError as e:
                     # Clear cache when any error
                     self._cache_list = os.urandom(10)
+                    self._extractor._cached_list_items = os.urandom(10)
+                except sqlalchemy.exc.InvalidRequestError as e:
                     print('\033[31merror in', self._tag)
                     print('Unknown error!!', e)
                     traceback.print_exc()
                     print('\033[0m')
-                except Exception:
                     # Clear cache when any error
                     self._cache_list = os.urandom(10)
+                    self._extractor._cached_list_items = os.urandom(10)
+                except Exception:
                     print('\033[31merror in', self._tag)
                     traceback.print_exc()
                     print('\033[0m')
+                    # Clear cache when any error
+                    self._cache_list = os.urandom(10)
+                    self._extractor._cached_list_items = os.urandom(10)
                 # Sleep when each loop ended
                 sleep(sleep_time)
 
