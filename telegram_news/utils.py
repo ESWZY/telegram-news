@@ -208,3 +208,29 @@ def xml_to_json(xml_str):
     json_str = json.dumps(xml_parse)
     return json_str
 
+
+def get_full_width(text, get_full_width_char, get_full_width_number, get_full_width_symbol):
+    """
+    Get full width characters.
+
+    :param text: original text.
+    :param get_full_width_char: set True to get full width English letter.
+    :param get_full_width_number: set True to get full width number.
+    :param get_full_width_symbol: set True to get full width symbol.
+    :return: full width text result.
+    """
+
+    if get_full_width_char:
+        set1 = {chr(0x0041 + i): chr(0xFF21 + i) for i in range(26)}    # A -> Ａ
+        set2 = {chr(0x0061 + i): chr(0xFF41 + i) for i in range(26)}    # a -> ａ
+        text = text.translate(str.maketrans(set1))
+        text = text.translate(str.maketrans(set2))
+    if get_full_width_number:
+        text = text.translate(str.maketrans({chr(0x0030 + i): chr(0xFF10 + i) for i in range(10)}))
+    if get_full_width_symbol:
+        set3 = {'!': '！', '"': '＂', '#': '＃', '$': '＄', '%': '％', '&': '＆', "'": '＇', '(': '（', ')': '）',
+                '*': '＊', '+': '＋', ',': '，', '-': '－', '.': '．', '/': '／', ':': '：', ';': '；', '<': '＜',
+                '=': '＝', '>': '＞', '?': '？', '@': '＠', '[': '［', '\\': '＼', ']': '］', '^': '＾', '_': '＿',
+                '`': '｀', '{': '｛', '|': '｜', '}': '｝', '~': '～'}
+        text = text.translate(str.maketrans(set3))
+    return text

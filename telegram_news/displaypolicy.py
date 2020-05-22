@@ -76,6 +76,67 @@ def default_policy(item, max_len=1000, max_par_num=15):
     return po, parse_mode, disable_web_page_preview
 
 
+def best_effort_display_policy(item, max_len=1000, max_par_num=15, suffix='...'):
+    """
+    Display as more paragraphs as possible.
+    If over max_len, end with suffix.
+
+    :param item: item dict.
+    :param max_len: max message length.
+    :param max_par_num: max paragraph number.
+    :param suffix: used for indicating an omission.
+    :return: formatted forward message, parse mode (HTML or Markdown), disable web page preview flag.
+    """
+    parse_mode = 'html'
+    disable_web_page_preview = 'True'
+
+    full = '<b>' + item['title'] + '</b>\n\n' + item['paragraphs'] + item['time'] + '\n' + \
+           '[' + item['source'] + ']' + '<a href=\"' + item['link'] + '\">[Full text]</a>' + ' '
+
+    # po is the text we want to post
+    po = ""
+    if item['title']:
+        po += '<b>' + item['title'] + '</b>'
+        po += '\n\n'
+
+    if item['paragraphs']:
+        if len(full) > max_len:
+            max_len -= len(suffix) + 2
+            length = len(full) - len(item['paragraphs'])
+            ps = item['paragraphs'].split('\n\n')
+            for p in ps:
+                if length + len(p) > max_len:
+                    po += suffix + '\n\n'
+                    break
+                else:
+                    length += len(p)
+                    po += p + '\n\n'
+        else:
+            po += item['paragraphs']
+
+        if po[-1] != '\n':
+            po += '\n'
+        if po[-2] != '\n':
+            po += '\n'
+
+    if item['time']:
+        po += item['time']
+        po += '\n'
+
+    if item['source']:
+        po += '[' + item['source'] + ']' + ' '
+
+    if item['link']:
+        po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
+
+    po = po.replace('<br>', "")
+
+    if len(po) > 4096:
+        return "Too long message!\n" + item['id'], parse_mode, disable_web_page_preview
+
+    return po, parse_mode, disable_web_page_preview
+
+
 def default_id_policy(self, link):
     """
     Generate id from link, the default way.
