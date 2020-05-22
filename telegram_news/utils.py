@@ -29,9 +29,14 @@ def keep_img(text, url):
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
 
+    # Keep the first blank if have
+    blank_num = 0
+    if text[0] == ' ':
+        blank_num = 1
+
     # No image here, return directly
     if not soup.select('img'):
-        return soup.getText().replace('<', '&lt;').replace('>', '&gt;')
+        return ' ' * blank_num + soup.getText().replace('<', '&lt;').replace('>', '&gt;')
 
     # Find image(s)
     else:
@@ -63,7 +68,7 @@ def keep_img(text, url):
             cp = str(cp).replace(str(other[0]) + str(img), "")
 
         # Return processed text and the plain text behind
-        return result + BeautifulSoup(cp, 'lxml').getText().replace('<', '&lt;').replace('>', '&gt;')
+        return ' ' * blank_num + result + BeautifulSoup(cp, 'lxml').getText().replace('<', '&lt;').replace('>', '&gt;')
 
 
 def keep_link(text, url):
@@ -178,23 +183,6 @@ def add_parameters_into_url(url, parameters):
     query.update(parameters)
     url_parts[4] = urlencode(query)
     return urlparse.urlunparse(url_parts)
-
-
-def is_length_immunity(item):
-    """
-    Judge whether follow the length rule. Rewrite it when possible.
-
-    :param item: item dict.
-    :return: bool.
-    """
-    if item['title']:
-        if item['title'][:4] == '综合消息':
-            return True
-        if item['title'][:2] == '综述':
-            return True
-    else:
-        print('Missing title!', item)
-    return False
 
 
 def xml_to_json(xml_str):

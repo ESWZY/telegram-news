@@ -31,13 +31,6 @@ def default_policy(item, max_len=1000, max_par_num=15):
     max_len = max_len
     max_par_num = max_par_num
 
-    if is_length_immunity(item):
-        # full is the full text you want to post
-        full = '<b>' + item['title'] + '</b>\n\n' + item['paragraphs'] + item['time'] + '\n' + \
-               '[' + item['source'] + ']' + '<a href=\"' + item['link'] + '\">[Full text]</a>' + ' '
-        # Remember that even the text is not limited by length, we still ensure its length is under MAXLEN
-        max_len = min(len(full), MAXLEN)
-
     # po is the text we want to post
     po = ""
     if item['title']:
