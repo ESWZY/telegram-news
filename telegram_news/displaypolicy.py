@@ -8,9 +8,6 @@ Add new ones when possible.
 
 import re
 
-from .utils import (
-    is_length_immunity,
-)
 
 MAXLEN = 4096
 
