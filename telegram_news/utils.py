@@ -7,6 +7,8 @@ Add new ones when possible.
 """
 
 import json
+import re
+
 import xmltodict
 from bs4 import BeautifulSoup
 
@@ -81,7 +83,12 @@ def keep_link(text, url):
     """
     if not text:
         return ""
-    text = text.replace('<br>', '\n')
+
+    text = text.replace('<br>', '\n')    # TODO: this is useless?
+
+    # Ignore HTML comment
+    text = re.sub(r'<!--[\s\S]*?-->', '', text)
+
     soup = BeautifulSoup(text, 'lxml')
 
     # No link here, return directly
