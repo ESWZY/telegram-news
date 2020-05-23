@@ -28,6 +28,9 @@ def keep_img(text, url):
     :param url: base url of the website.
     :return: processed string.
     """
+    if not text:
+        return ''
+
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
 
