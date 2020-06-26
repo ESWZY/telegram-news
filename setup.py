@@ -14,7 +14,7 @@ LONG_DESCRIPTION = open("README.md").read()
 
 setup(
     name='telegram-news',
-    version='0.3.4',
+    version='0.3.5',
     author='ESWZY',
     author_email='0903wzy@gmail.com',
     url='https://github.com/ESWZY/telegram-news',

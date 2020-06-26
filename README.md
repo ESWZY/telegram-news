@@ -76,7 +76,7 @@ Then, you will get messages like this in your channel or group:
 >
 >Wednesday, April 8, 2020
 >
->[ "[COVID-19 Confirmed Patients](http://119.40.84.187/surveillance/)" - [IEDCR](https://en.wikipedia.org/wiki/IEDCR) ] [[Full text](https://en.wikinews.org/wiki/Bangladesh_reports_five_new_deaths_due_to_COVID-19,_a_daily_highest?dpl_id=2891328)]
+>[ "[COVID-19 Confirmed Patients](http://119.40.84.187/surveillance/)" - [IEDCR](https://en.wikipedia.org/wiki/IEDCR) ] [[Full Text](https://en.wikinews.org/wiki/Bangladesh_reports_five_new_deaths_due_to_COVID-19,_a_daily_highest?dpl_id=2891328)]
 
 ## Example
 

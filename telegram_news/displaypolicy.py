@@ -56,7 +56,7 @@ def default_policy(item, max_len=1000, max_par_num=15):
         po += '[' + item['source'] + ']' + ' '
 
     if item['link']:
-        po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
+        po += '<a href=\"' + item['link'] + '\">[Full Text]</a>'
 
     po = po.replace('<br>', "")
 
@@ -117,7 +117,7 @@ def best_effort_display_policy(item, max_len=1000, max_par_num=15, suffix='...')
         po += '[' + item['source'] + ']' + ' '
 
     if item['link']:
-        po += '<a href=\"' + item['link'] + '\">[Full text]</a>'
+        po += '<a href=\"' + item['link'] + '\">[Full Text]</a>'
 
     po = po.replace('<br>', "")
 
