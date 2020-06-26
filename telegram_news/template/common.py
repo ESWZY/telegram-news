@@ -184,7 +184,11 @@ class InfoExtractor(object):
                 item['title'] = item['title']
             if self._outer_paragraph_selector:
                 try:
-                    paragraphs = [x.get_text().strip() for x in soup2.select(self._outer_paragraph_selector)]
+                    paragraphs = [
+                        x.get_text().strip()
+                        for x in soup2.select(self._outer_paragraph_selector)
+                        if x.get_text().strip()
+                    ]
                     item['paragraphs'] = '\n\n'.join(paragraphs) + '\n\n'
                 except IndexError:
                     item['paragraphs'] = ''
@@ -224,8 +228,9 @@ class InfoExtractor(object):
         :param item: item dict.
         :return: title string.
         """
-        if item['title'] or self._outer_title_selector:
-            return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
+        if not self._title_selector:
+            if item['title'] or self._outer_title_selector:
+                return keep_link(item['title'].replace('&nbsp;', ' '), item['link'])
         if not self._title_selector:
             return ''
         soup = BeautifulSoup(text, 'lxml')
@@ -248,6 +253,7 @@ class InfoExtractor(object):
             return item['paragraphs']
         if not self._paragraph_selector:
             return None
+
         soup = BeautifulSoup(text, 'lxml')
         paragraph_select = soup.select(self._paragraph_selector)
         # print(paragraph_select)
