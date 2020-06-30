@@ -33,6 +33,7 @@ from ..utils import (
     is_single_media,
     get_full_link,
     xml_to_json,
+    add_parameters_into_url,
 )
 
 
@@ -78,15 +79,17 @@ class InfoExtractor(object):
     _cached_list_items = os.urandom(10)
 
     _list_selector = None
-    _time_selector = None
     _title_selector = None
+    _time_selector = None
     _source_selector = None
+    _image_selector = None
     _paragraph_selector = 'p'  # Default selector
     _outer_link_selector = 'a'  # Default selector
     _outer_title_selector = None
     _outer_paragraph_selector = None
     _outer_time_selector = None
     _outer_source_selector = None
+    _outer_image_selector = None
 
     def __init__(self, lang=''):
         """Construct the class."""
@@ -108,6 +111,9 @@ class InfoExtractor(object):
     def set_source_selector(self, selector):
         self._source_selector = selector
 
+    def set_image_selector(self, selector):
+        self._image_selector = selector
+
     def set_outer_link_selector(self, selector):
         self._outer_link_selector = selector
 
@@ -122,6 +128,10 @@ class InfoExtractor(object):
 
     def set_outer_source_selector(self, selector):
         self._outer_source_selector = selector
+
+    def set_outer_image_selector(self, selector):
+        print('Set outer selector successfully', selector)
+        self._outer_image_selector = selector
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
@@ -170,11 +180,11 @@ class InfoExtractor(object):
             link_select = soup2.select(self._outer_link_selector)
             link = get_full_link(link_select[0].get('href'), listURL)
             item = {
-                # 'title': '',
                 "title": link_select[0].get_text().strip(),
                 'link': link,
                 'id': self._id_policy(link)
             }
+
             if self._outer_title_selector:
                 try:
                     item['title'] = soup2.select(self._outer_title_selector)[0].get_text().strip()
@@ -182,6 +192,7 @@ class InfoExtractor(object):
                     item['title'] = ''
             else:
                 item['title'] = item['title']
+
             if self._outer_paragraph_selector:
                 try:
                     paragraphs = [
@@ -194,6 +205,7 @@ class InfoExtractor(object):
                     item['paragraphs'] = ''
             else:
                 item['paragraphs'] = ''
+
             if self._outer_time_selector:
                 try:
                     item['time'] = soup2.select(self._outer_time_selector)[0].get_text().strip()
@@ -201,6 +213,7 @@ class InfoExtractor(object):
                     item['time'] = ''
             else:
                 item['time'] = ''
+
             if self._outer_source_selector:
                 try:
                     item['source'] = soup2.select(self._outer_source_selector)[0].get_text().strip()
@@ -209,6 +222,14 @@ class InfoExtractor(object):
             else:
                 item['source'] = ''
 
+            if self._outer_image_selector:
+                try:
+                    tags = soup2.select(self._outer_image_selector)
+                    item['images'] = [get_full_link(img.get('src'),listURL) for img in tags]
+                except IndexError:
+                    item['images'] = []
+            else:
+                item['images'] = []
             news_list.append(item)
 
         # Hit cache test here
@@ -297,8 +318,6 @@ class InfoExtractor(object):
         if not time_select:
             return ""
         publish_time = time_select[0].getText().strip().replace('\n', ' ')
-        if len(publish_time) > 100:
-            publish_time = ''
         return publish_time
 
     def get_source_policy(self, text, item):
@@ -322,6 +341,23 @@ class InfoExtractor(object):
         except IndexError:  # Do not have this element because of missing/403/others
             source = ""
         return source
+
+    def get_image_policy(self, text, item):
+        """
+        Get selected image.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: image url list.
+        """
+        if item['images'] or self._outer_image_selector:
+            return item['images']
+        if not self._image_selector:
+            return []
+        soup = BeautifulSoup(text, 'lxml')
+        tags_select = soup.select(self._image_selector)
+        images = [get_full_link(img.get('src'), item['link']) for img in tags_select]
+        return images
 
 
 class InfoExtractorJSON(InfoExtractor):
@@ -349,6 +385,7 @@ class InfoExtractorJSON(InfoExtractor):
     _paragraphs_router = None
     _time_router = None
     _source_router = None
+    _image_router = None
 
     def __init__(self):
         """As same as InfoExtractor."""
@@ -389,6 +426,9 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
+    def set_image_router(self, router):
+        self._image_router = router
+
     def get_items_policy(self, text, listURL):  # -> (list, int)
         try:
             list_json = json.loads(text)
@@ -414,6 +454,7 @@ class InfoExtractorJSON(InfoExtractor):
             item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item["time"] = self._get_item_by_route(i, self._time_router)
             item["source"] = self._get_item_by_route(i, self._source_router)
+            item["image"] = self._get_item_by_route(i, self._image_router)
             news_list.append(item)
 
         # Hit cache test here
@@ -444,6 +485,11 @@ class InfoExtractorJSON(InfoExtractor):
         if item['source'] and self._source_router:
             return item['source']
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
+
+    def get_image_policy(self, text, item):
+        if item['images'] and self._image_router:
+            return item['images']
+        return super(InfoExtractorJSON, self).get_image_policy(text, item)
 
 
 class InfoExtractorXML(InfoExtractorJSON):
@@ -656,24 +702,55 @@ class NewsPostman(object):
         paragraphs = self._extractor.get_paragraphs_policy(text, item)
         publish_time = self._extractor.get_time_policy(text, item)
         source = self._extractor.get_source_policy(text, item)
+        images = self._extractor.get_image_policy(text, item)
 
-        return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
+        return {
+            'title': title,
+            'time': publish_time,
+            'source': source,
+            'paragraphs': paragraphs,
+            'link': url,
+            'images': images
+        }
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)
-    def _post(self, item, news_id):
+    def _data_format(self, item, news_id):
 
-        # Get display policy by item info
-        po, parse_mode, disable_web_page_preview = self._display_policy(item, max_len=self._extractor.max_post_length)
+        # Get display policy by "item" information
+        data = self._display_policy(item, max_len=self._extractor.max_post_length)
 
         # Do not post if the message is empty
-        if not po:
+        if not data['text']:
             return None
 
         # Must url encode the text
         if self._DEBUG:
-            po += '\nDEBUG #D' + str(news_id)
-        po = str_url_encode(po)
+            data['text'] += '\nDEBUG #D' + str(news_id)
+
+        if 'images' in item:
+            if len(item['images']) == 1:
+                method = 'sendPhoto'
+                data['caption'] = data.pop('text')
+                data['photo'] = item['images'][0]
+            else:
+                method = 'sendPhoto'    # TODO: sendMediaGroup method
+                data['caption'] = data.pop('text')
+                data['photo'] = item['images'][0]
+        else:
+            method = 'sendMessage'
+            text_name = 'text'      # Max length = 4096
+
+        return data, method
+
+    @sleep_and_retry
+    @limits(calls=1, period=1)
+    def _real_post(self, token, method, data):
+        # https://core.telegram.org/bots/api#sendmessage
+        res = requests.post('https://api.telegram.org/bot' + token + '/' + method, data, proxies=self._proxies)
+        return res
+
+    def _post(self, item, news_id):
+
+        data, method = self._data_format(item, news_id)
 
         res = None
 
@@ -688,10 +765,9 @@ class NewsPostman(object):
                 if not token:
                     continue
 
-                # https://core.telegram.org/bots/api#sendmessage
-                post_url = 'https://api.telegram.org/bot' + token + '/sendMessage?chat_id=' + chat_id + '&text=' + \
-                           po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
-                res = requests.get(post_url, proxies=self._proxies)
+                data["chat_id"] = chat_id
+
+                res = self._real_post(token=token, method=method, data=data)
 
                 # If post successfully, record and post to next channel.
                 if res.status_code == 200:
