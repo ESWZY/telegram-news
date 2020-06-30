@@ -224,12 +224,11 @@ class InfoExtractor(object):
             if self._outer_image_selector:
                 try:
                     tags = soup2.select(self._outer_image_selector)
-                    item['image'] = [get_full_link(img.get('src'),listURL) for img in tags]    # TODO: need test
+                    item['image'] = [get_full_link(img.get('src'),listURL) for img in tags]
                 except IndexError:
                     item['image'] = []
             else:
                 item['image'] = []
-            print(item['image'])
             news_list.append(item)
 
         # Hit cache test here
@@ -340,6 +339,22 @@ class InfoExtractor(object):
             source = ""
         return source
 
+    def get_image_policy(self, text, item):
+        """
+        Get selected image.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: image url list.
+        """
+        if item['image'] or self._outer_image_selector:
+            return item['image']
+        if not self._image_selector:
+            return []
+        soup = BeautifulSoup(text, 'lxml')
+        tags_select = soup.select(self._image_selector)
+        images = [get_full_link(img.get('src'), item['link']) for img in tags_select]
+        return images
 
 class InfoExtractorJSON(InfoExtractor):
     """
@@ -674,8 +689,16 @@ class NewsPostman(object):
         paragraphs = self._extractor.get_paragraphs_policy(text, item)
         publish_time = self._extractor.get_time_policy(text, item)
         source = self._extractor.get_source_policy(text, item)
+        images = self._extractor.get_image_policy(text, item)
 
-        return {'title': title, 'time': publish_time, 'source': source, 'paragraphs': paragraphs, 'link': url}
+        return {
+            'title': title,
+            'time': publish_time,
+            'source': source,
+            'paragraphs': paragraphs,
+            'link': url,
+            'images': images
+        }
 
     @sleep_and_retry
     @limits(calls=1, period=1)
