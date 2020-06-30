@@ -224,11 +224,11 @@ class InfoExtractor(object):
             if self._outer_image_selector:
                 try:
                     tags = soup2.select(self._outer_image_selector)
-                    item['image'] = [get_full_link(img.get('src'),listURL) for img in tags]
+                    item['images'] = [get_full_link(img.get('src'),listURL) for img in tags]
                 except IndexError:
-                    item['image'] = []
+                    item['images'] = []
             else:
-                item['image'] = []
+                item['images'] = []
             news_list.append(item)
 
         # Hit cache test here
@@ -347,14 +347,15 @@ class InfoExtractor(object):
         :param item: item dict.
         :return: image url list.
         """
-        if item['image'] or self._outer_image_selector:
-            return item['image']
+        if item['images'] or self._outer_image_selector:
+            return item['images']
         if not self._image_selector:
             return []
         soup = BeautifulSoup(text, 'lxml')
         tags_select = soup.select(self._image_selector)
         images = [get_full_link(img.get('src'), item['link']) for img in tags_select]
         return images
+
 
 class InfoExtractorJSON(InfoExtractor):
     """
@@ -483,8 +484,8 @@ class InfoExtractorJSON(InfoExtractor):
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
 
     def get_image_policy(self, text, item):
-        if item['image'] and self._image_router:
-            return item['image']
+        if item['images'] and self._image_router:
+            return item['images']
         return super(InfoExtractorJSON, self).get_image_policy(text, item)
 
 
@@ -551,7 +552,6 @@ class NewsPostman(object):
     _full_request_response_encode = 'utf-8'
     _full_request_timeout = 10
     _max_list_length = math.inf
-    _send_method = "sendMessage"
     _extractor = InfoExtractor()
 
     # Cache the list webpage and check if modified
@@ -710,21 +710,44 @@ class NewsPostman(object):
             'images': images
         }
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)
-    def _post(self, item, news_id):
+    def _data_format(self, item, news_id):
 
-        # Get display policy by item info
-        po, parse_mode, disable_web_page_preview = self._display_policy(item, max_len=self._extractor.max_post_length)
+        # Get display policy by "item" information
+        data = self._display_policy(item, max_len=self._extractor.max_post_length)
 
         # Do not post if the message is empty
-        if not po:
+        if not data['text']:
             return None
 
         # Must url encode the text
         if self._DEBUG:
-            po += '\nDEBUG #D' + str(news_id)
-        po = str_url_encode(po)
+            data['text'] += '\nDEBUG #D' + str(news_id)
+
+        if 'images' in item:
+            if len(item['images']) == 1:
+                method = 'sendPhoto'
+                data['caption'] = data.pop('text')
+                data['photo'] = item['images'][0]
+            else:
+                method = 'sendPhoto'    # TODO: sendMediaGroup method
+                data['caption'] = data.pop('text')
+                data['photo'] = item['images'][0]
+        else:
+            method = 'sendMessage'
+            text_name = 'text'      # Max length = 4096
+
+        return data, method
+
+    @sleep_and_retry
+    @limits(calls=1, period=1)
+    def _real_post(self, token, method, data):
+        # https://core.telegram.org/bots/api#sendmessage
+        res = requests.post('https://api.telegram.org/bot' + token + '/' + method, data, proxies=self._proxies)
+        return res
+
+    def _post(self, item, news_id):
+
+        data, method = self._data_format(item, news_id)
 
         res = None
 
@@ -739,10 +762,9 @@ class NewsPostman(object):
                 if not token:
                     continue
 
-                # https://core.telegram.org/bots/api#sendmessage
-                post_url = 'https://api.telegram.org/bot' + token + '/sendMessage?chat_id=' + chat_id + '&text=' + \
-                           po + '&parse_mode=' + parse_mode + '&disable_web_page_preview=' + disable_web_page_preview
-                res = requests.get(post_url, proxies=self._proxies)
+                data["chat_id"] = chat_id
+
+                res = self._real_post(token=token, method=method, data=data)
 
                 # If post successfully, record and post to next channel.
                 if res.status_code == 200:

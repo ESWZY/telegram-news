@@ -73,7 +73,11 @@ def default_policy(item, max_len=1000, max_par_num=15):
     if len(po) > MAXLEN:
         return "Too long message!\n" + item['id'], parse_mode, disable_web_page_preview
 
-    return po, parse_mode, disable_web_page_preview
+    return {
+        'text': po,
+        'parse_mode': parse_mode,
+        'disable_web_page_preview': disable_web_page_preview
+    }
 
 
 def default_id_policy(self, link):
