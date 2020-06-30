@@ -35,9 +35,6 @@ from ..utils import (
     xml_to_json,
     add_parameters_into_url,
 )
-from ..constant import (
-    AVAILABLE_METHOD,
-)
 
 
 class InfoExtractor(object):
