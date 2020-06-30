@@ -381,6 +381,7 @@ class InfoExtractorJSON(InfoExtractor):
     _paragraphs_router = None
     _time_router = None
     _source_router = None
+    _image_router = None
 
     def __init__(self):
         """As same as InfoExtractor."""
@@ -421,6 +422,9 @@ class InfoExtractorJSON(InfoExtractor):
     def set_source_router(self, router):
         self._source_router = router
 
+    def set_image_router(self, router):
+        self._image_router = router
+
     def get_items_policy(self, text, listURL):  # -> (list, int)
         try:
             list_json = json.loads(text)
@@ -446,6 +450,7 @@ class InfoExtractorJSON(InfoExtractor):
             item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item["time"] = self._get_item_by_route(i, self._time_router)
             item["source"] = self._get_item_by_route(i, self._source_router)
+            item["image"] = self._get_item_by_route(i, self._image_router)
             news_list.append(item)
 
         # Hit cache test here
@@ -476,6 +481,11 @@ class InfoExtractorJSON(InfoExtractor):
         if item['source'] and self._source_router:
             return item['source']
         return super(InfoExtractorJSON, self).get_source_policy(text, item)
+
+    def get_image_policy(self, text, item):
+        if item['image'] and self._image_router:
+            return item['image']
+        return super(InfoExtractorJSON, self).get_image_policy(text, item)
 
 
 class InfoExtractorXML(InfoExtractorJSON):
