@@ -452,9 +452,9 @@ class InfoExtractorJSON(InfoExtractor):
                 item['id'] = self._id_policy(item['link'])
             item['title'] = self._get_item_by_route(i, self._title_router)
             item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
-            item["time"] = self._get_item_by_route(i, self._time_router)
-            item["source"] = self._get_item_by_route(i, self._source_router)
-            item["image"] = self._get_item_by_route(i, self._image_router)
+            item['time'] = self._get_item_by_route(i, self._time_router)
+            item['source'] = self._get_item_by_route(i, self._source_router)
+            item['images'] = self._get_item_by_route(i, self._image_router)
             news_list.append(item)
 
         # Hit cache test here
@@ -726,15 +726,22 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
-        if 'images' in item:
+        if item['images']:
             if len(item['images']) == 1:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
-                data['photo'] = item['images'][0]
+                if type(item['images']) == type('1'):
+                    data['photo'] = item['images']
+                else:
+                    data['photo'] = item['images'][0]
+
             else:
                 method = 'sendPhoto'    # TODO: sendMediaGroup method
                 data['caption'] = data.pop('text')
-                data['photo'] = item['images'][0]
+                if type(item['images']) == type('1'):
+                    data['photo'] = item['images']
+                else:
+                    data['photo'] = item['images'][0]
         else:
             method = 'sendMessage'
             text_name = 'text'      # Max length = 4096
@@ -765,7 +772,7 @@ class NewsPostman(object):
                 if not token:
                     continue
 
-                data["chat_id"] = chat_id
+                data['chat_id'] = chat_id
 
                 res = self._real_post(token=token, method=method, data=data)
 
