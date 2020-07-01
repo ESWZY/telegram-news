@@ -726,7 +726,7 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
-        if item['images']:
+        if 'images' in item and item['images']:
             if len(item['images']) == 1:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
