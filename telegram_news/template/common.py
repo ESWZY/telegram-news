@@ -225,7 +225,7 @@ class InfoExtractor(object):
             if self._outer_image_selector:
                 try:
                     tags = soup2.select(self._outer_image_selector)
-                    item['images'] = [get_full_link(img.get('src'),listURL) for img in tags]
+                    item['images'] = [get_full_link(img.get('src'), listURL) for img in tags]
                 except IndexError:
                     item['images'] = []
             else:
@@ -454,7 +454,8 @@ class InfoExtractorJSON(InfoExtractor):
             item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
             item['time'] = self._get_item_by_route(i, self._time_router)
             item['source'] = self._get_item_by_route(i, self._source_router)
-            item['images'] = self._get_item_by_route(i, self._image_router)
+            image_temp = self._get_item_by_route(i, self._image_router)
+            item['images'] = [image_temp] if isinstance(image_temp, str) else image_temp  # str, list and None
             news_list.append(item)
 
         # Hit cache test here
@@ -730,21 +731,18 @@ class NewsPostman(object):
             if len(item['images']) == 1:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
-                if type(item['images']) == type('1'):
-                    data['photo'] = item['images']
-                else:
-                    data['photo'] = item['images'][0]
-
+                data['photo'] = item['images'][0]
             else:
-                method = 'sendPhoto'    # TODO: sendMediaGroup method
-                data['caption'] = data.pop('text')
-                if type(item['images']) == type('1'):
-                    data['photo'] = item['images']
-                else:
-                    data['photo'] = item['images'][0]
+                method = 'sendMediaGroup'
+                data['media'] = []
+                for image in item['images']:
+                    data['media'].append({'type': 'photo', 'media': image})
+                data['media'][0]['caption'] = data.pop('text')
+                data['media'][0]['parse_mode'] = data.pop('parse_mode')
+                data['media'] = json.dumps(data['media'])
         else:
             method = 'sendMessage'
-            text_name = 'text'      # Max length = 4096
+            text_name = 'text'  # Max length = 4096
 
         return data, method
 
