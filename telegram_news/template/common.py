@@ -783,21 +783,21 @@ class NewsPostman(object):
                 method = 'sendVideo'
                 data['caption'] = data.pop('text')
                 data['video'] = item['videos'][0]
-                data['file_size'] = 20
             else:
                 method = 'sendMediaGroup'
                 data['media'] = []
                 for image in item['images']:
                     data['media'].append({'type': 'photo', 'media': image})
                 for video in item['videos']:
-                    data['media'].append({'type': 'video', 'media': video + '?aidvhwsl=' + str(random.randint(1,100))})
+                    data['media'].append({'type': 'video', 'media': video})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
                 data['media'] = json.dumps(data['media'])
         else:
             method = 'sendMessage'
             text_name = 'text'  # Max length = 4096
-        print(data)
+
+        # print(data)
         return data, method
 
     @sleep_and_retry
