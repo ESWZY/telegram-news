@@ -11,6 +11,7 @@ situations.
 import json
 import math
 import os
+import random
 import threading
 import traceback
 from time import sleep
@@ -83,6 +84,7 @@ class InfoExtractor(object):
     _time_selector = None
     _source_selector = None
     _image_selector = None
+    _video_selector = None
     _paragraph_selector = 'p'  # Default selector
     _outer_link_selector = 'a'  # Default selector
     _outer_title_selector = None
@@ -90,6 +92,7 @@ class InfoExtractor(object):
     _outer_time_selector = None
     _outer_source_selector = None
     _outer_image_selector = None
+    _outer_video_selector = None
 
     def __init__(self, lang=''):
         """Construct the class."""
@@ -114,6 +117,9 @@ class InfoExtractor(object):
     def set_image_selector(self, selector):
         self._image_selector = selector
 
+    def set_video_selector(self, selector):
+        self._video_selector = selector
+
     def set_outer_link_selector(self, selector):
         self._outer_link_selector = selector
 
@@ -130,8 +136,10 @@ class InfoExtractor(object):
         self._outer_source_selector = selector
 
     def set_outer_image_selector(self, selector):
-        print('Set outer selector successfully', selector)
         self._outer_image_selector = selector
+
+    def set_outer_video_selector(self, selector):
+        self._outer_video_selector = selector
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
@@ -230,6 +238,15 @@ class InfoExtractor(object):
                     item['images'] = []
             else:
                 item['images'] = []
+
+            if self._outer_video_selector:
+                try:
+                    tags = soup2.select(self._outer_video_selector)
+                    item['videos'] = [get_full_link(vid.get('src'), listURL) for vid in tags]
+                except IndexError:
+                    item['videos'] = []
+            else:
+                item['videos'] = []
             news_list.append(item)
 
         # Hit cache test here
@@ -359,6 +376,23 @@ class InfoExtractor(object):
         images = [get_full_link(img.get('src'), item['link']) for img in tags_select]
         return images
 
+    def get_video_policy(self, text, item):
+        """
+        Get selected video.
+
+        :param text: raw request data from webpage.
+        :param item: item dict.
+        :return: video url list.
+        """
+        if item['videos'] or self._outer_video_selector:
+            return item['videos']
+        if not self._video_selector:
+            return []
+        soup = BeautifulSoup(text, 'lxml')
+        tags_select = soup.select(self._video_selector)
+        videos = [get_full_link(vid.get('src'), item['link']) for vid in tags_select]
+        return videos
+
 
 class InfoExtractorJSON(InfoExtractor):
     """
@@ -386,6 +420,7 @@ class InfoExtractorJSON(InfoExtractor):
     _time_router = None
     _source_router = None
     _image_router = None
+    _video_router = None
 
     def __init__(self):
         """As same as InfoExtractor."""
@@ -429,6 +464,9 @@ class InfoExtractorJSON(InfoExtractor):
     def set_image_router(self, router):
         self._image_router = router
 
+    def set_video_router(self, router):
+        self._video_router = router
+
     def get_items_policy(self, text, listURL):  # -> (list, int)
         try:
             list_json = json.loads(text)
@@ -456,6 +494,8 @@ class InfoExtractorJSON(InfoExtractor):
             item['source'] = self._get_item_by_route(i, self._source_router)
             image_temp = self._get_item_by_route(i, self._image_router)
             item['images'] = [image_temp] if isinstance(image_temp, str) else image_temp  # str, list and None
+            video_temp = self._get_item_by_route(i, self._video_router)
+            item['videos'] = [video_temp] if isinstance(video_temp, str) else video_temp  # str, list and None
             news_list.append(item)
 
         # Hit cache test here
@@ -491,6 +531,11 @@ class InfoExtractorJSON(InfoExtractor):
         if item['images'] and self._image_router:
             return item['images']
         return super(InfoExtractorJSON, self).get_image_policy(text, item)
+
+    def get_video_policy(self, text, item):
+        if item['videos'] and self._video_router:
+            return item['videos']
+        return super(InfoExtractorJSON, self).get_video_policy(text, item)
 
 
 class InfoExtractorXML(InfoExtractorJSON):
@@ -704,6 +749,7 @@ class NewsPostman(object):
         publish_time = self._extractor.get_time_policy(text, item)
         source = self._extractor.get_source_policy(text, item)
         images = self._extractor.get_image_policy(text, item)
+        videos = self._extractor.get_video_policy(text, item)
 
         return {
             'title': title,
@@ -711,7 +757,8 @@ class NewsPostman(object):
             'source': source,
             'paragraphs': paragraphs,
             'link': url,
-            'images': images
+            'images': images,
+            'videos': videos,
         }
 
     def _data_format(self, item, news_id):
@@ -727,23 +774,30 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
-        if 'images' in item and item['images']:
-            if len(item['images']) == 1:
+        if ('images' in item and item['images']) or ('videos' in item and item['videos']):
+            if len(item['images']) == 1 and len(item['videos']) == 0:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
                 data['photo'] = item['images'][0]
+            elif len(item['images']) == 0 and len(item['videos']) == 1:
+                method = 'sendVideo'
+                data['caption'] = data.pop('text')
+                data['video'] = item['videos'][0]
+                data['file_size'] = 20
             else:
                 method = 'sendMediaGroup'
                 data['media'] = []
                 for image in item['images']:
                     data['media'].append({'type': 'photo', 'media': image})
+                for video in item['videos']:
+                    data['media'].append({'type': 'video', 'media': video + '?aidvhwsl=' + str(random.randint(1,100))})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
                 data['media'] = json.dumps(data['media'])
         else:
             method = 'sendMessage'
             text_name = 'text'  # Max length = 4096
-
+        print(data)
         return data, method
 
     @sleep_and_retry
