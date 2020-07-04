@@ -36,6 +36,9 @@ from ..utils import (
     xml_to_json,
     add_parameters_into_url,
 )
+from ..constant import (
+    MAX_MEDIA_PER_MEDIAGROUP,
+)
 
 
 class InfoExtractor(object):
@@ -588,6 +591,8 @@ class NewsPostman(object):
     _full_request_timeout = 10
     _max_list_length = math.inf
     _extractor = InfoExtractor()
+    _disable_cache = False
+    _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
 
     # Cache the list webpage and check if modified
     _cache_list = os.urandom(10)
@@ -778,6 +783,12 @@ class NewsPostman(object):
                     data['media'].append({'type': 'video', 'media': video})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
+
+                # Telegram API return 400 if media length is greater than MAX_MEDIA_PER_MEDIAGROUP
+                if len(data['media']) > MAX_MEDIA_PER_MEDIAGROUP and self._max_media_control:
+                    data['media'] = data['media'][0:self._max_media_control]
+
+                # Telegram API can't parse media JSON object
                 data['media'] = json.dumps(data['media'])
         else:
             method = 'sendMessage'
