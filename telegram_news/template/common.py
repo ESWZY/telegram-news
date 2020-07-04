@@ -249,14 +249,7 @@ class InfoExtractor(object):
                 item['videos'] = []
             news_list.append(item)
 
-        # Hit cache test here
-        # If the list is new, return it.
-        if news_list != self._cached_list_items:
-            self._cached_list_items = news_list
-            return news_list, len(news_list)
-        else:
-            # print('List is not modified!', end=' ')
-            return None, len(news_list)
+        return news_list, len(news_list)
 
     def get_title_policy(self, text, item):
         """
@@ -498,14 +491,7 @@ class InfoExtractorJSON(InfoExtractor):
             item['videos'] = [video_temp] if isinstance(video_temp, str) else video_temp  # str, list and None
             news_list.append(item)
 
-        # Hit cache test here
-        # If the list is new, return it.
-        if news_list != self._cached_list_items:
-            self._cached_list_items = news_list
-            return news_list, len(news_list)
-        else:
-            # print('List is not modified!', end=' ')
-            return None, len(news_list)
+        return news_list, len(news_list)
 
     def get_title_policy(self, text, item):
         if item['title'] and self._title_router:
