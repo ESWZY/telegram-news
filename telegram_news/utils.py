@@ -20,9 +20,9 @@ except Exception:  # For Python 3
     from urllib.parse import urlencode
 
 
-def keep_img(text, url):
+def keep_media(text, url):
     """
-    Remove tags except media <img>.
+    Remove tags except media tags.
 
     :param text: raw text string.
     :param url: base url of the website.
@@ -39,11 +39,11 @@ def keep_img(text, url):
     if text[0] == ' ':
         blank_num = 1
 
-    # No image here, return directly
-    if not soup.select('img'):
+    # No media here, return directly
+    if not soup.select('img, video'):
         return ' ' * blank_num + soup.getText().replace('<', '&lt;').replace('>', '&gt;')
 
-    # Find image(s)
+    # Find media
     else:
         # Copy from original text
         cp = str(soup)
@@ -51,34 +51,40 @@ def keep_img(text, url):
         # The target string
         result = ""
 
+        media_list = soup.select('img, video')
+
         # Remove other tags, except <a>
-        for img in soup.select('img'):
+        for media in media_list:
 
-            # Split the text by <img> tag
-            other = str(cp).split(str(img))
+            # Split the text by <img> tag and <video> tag
+            other = str(cp).split(str(media))
 
-            # Get the image url
-            img_link = img.get('src')
+            # Get the media url
+            media_link = media.get('src')
 
             # Get plain text and concatenate with link
             result += BeautifulSoup(other[0], 'lxml').getText().strip().replace('<', '&lt;').replace('>', '&gt;')
-            if img_link:
-                # If the image link is a relative path
-                img_link = get_full_link(img_link, url)
+            if media_link:
+                # If the media link is a relative path
+                media_link = get_full_link(media_link, url)
 
-                # Embed the image as a link
-                result += '<a href=\"' + img_link + '\">' + '[Media]' + '</a>'
+                # Embed the media as a link
+                result += '<a href=\"' + media_link + '\">' + '[Media]' + '</a>'
 
             # Remove the processed text from processing string
-            cp = str(cp).replace(str(other[0]) + str(img), "")
+            cp = str(cp).replace(str(other[0]) + str(media), "")
 
         # Return processed text and the plain text behind
         return ' ' * blank_num + result + BeautifulSoup(cp, 'lxml').getText().replace('<', '&lt;').replace('>', '&gt;')
 
 
+def keep_img(text, url):
+    return keep_media(text, url)
+
+
 def keep_link(text, url):
     """
-    Remove tags except <a></a> and <img>. Otherwise, Telegram API will not parse.
+    Remove tags except <a></a>, <img> and <video>. Otherwise, Telegram API will not parse.
 
     :param text: raw text string.
     :param url: base url of the website.
@@ -96,7 +102,7 @@ def keep_link(text, url):
 
     # No link here, return directly
     if not soup.select('a'):
-        return keep_img(text, url)
+        return keep_media(text, url)
 
     # Find link(s)
     else:
@@ -118,7 +124,7 @@ def keep_link(text, url):
             link_url = link.get('href')
 
             # Get plain text and concatenate with link
-            result += keep_img(other[0], url)
+            result += keep_media(other[0], url)
 
             # Not keep <a> without any text or link
             if content:
@@ -132,7 +138,7 @@ def keep_link(text, url):
             cp = str(cp).replace(str(other[0]) + str(link), "")
 
         # Return processed text and the plain text behind
-        return result + keep_img(cp, url)
+        return result + keep_media(cp, url)
 
 
 def is_single_media(text):
