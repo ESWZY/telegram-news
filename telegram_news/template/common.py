@@ -21,7 +21,7 @@ import sqlalchemy
 from bs4 import BeautifulSoup
 
 from ..displaypolicy import (
-    default_policy,
+    best_effort_display_policy,
     default_id_policy,
 )
 from ..ratelimit import (
@@ -576,7 +576,7 @@ class NewsPostman(object):
     _sendList = []
     _headers = None
     _proxies = None
-    _display_policy = default_policy
+    _display_policy = best_effort_display_policy
     _parameter_policy = None
     _TOKENS = [os.getenv("TOKEN"), ]
     _db = None
@@ -592,7 +592,7 @@ class NewsPostman(object):
     # Cache the list webpage and check if modified
     _cache_list = os.urandom(10)
 
-    def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=default_policy):
+    def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=best_effort_display_policy):
         """Construct the class by setting key attributes."""
         self._DEBUG = False
         self._listURLs = listURLs
@@ -996,7 +996,7 @@ class NewsPostmanJSON(NewsPostman):
         As same as NewsPostman.
     """
 
-    def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+    def __init__(self, listURLs, sendList, db, tag='', display_policy=best_effort_display_policy):
         """As same as NewsPostman."""
         super(NewsPostmanJSON, self).__init__(listURLs, sendList=sendList, tag=tag,
                                               display_policy=display_policy, db=db)
@@ -1014,7 +1014,7 @@ class NewsPostmanXML(NewsPostman):
             As same as NewsPostman.
     """
 
-    def __init__(self, listURLs, sendList, db, tag='', display_policy=default_policy):
+    def __init__(self, listURLs, sendList, db, tag='', display_policy=best_effort_display_policy):
         """As same as NewsPostman."""
         super(NewsPostmanXML, self).__init__(listURLs, sendList=sendList, tag=tag,
                                              display_policy=display_policy, db=db)
