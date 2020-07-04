@@ -36,6 +36,9 @@ from ..utils import (
     xml_to_json,
     add_parameters_into_url,
 )
+from ..constant import (
+    MAX_MEDIA_PER_MEDIAGROUP,
+)
 
 
 class InfoExtractor(object):
@@ -588,6 +591,8 @@ class NewsPostman(object):
     _full_request_timeout = 10
     _max_list_length = math.inf
     _extractor = InfoExtractor()
+    _disable_cache = False
+    _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
 
     # Cache the list webpage and check if modified
     _cache_list = os.urandom(10)
@@ -697,6 +702,12 @@ class NewsPostman(object):
     def set_extractor(self, extractor):
         self._extractor = extractor
 
+    def disable_cache(self, disable=True):
+        self._disable_cache = disable
+
+    def set_max_media_number(self, number):
+        self._max_media_control = number
+
     def set_parameter_policy(self, parameter_policy):
         self._parameter_policy = parameter_policy
 
@@ -778,6 +789,12 @@ class NewsPostman(object):
                     data['media'].append({'type': 'video', 'media': video})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
+
+                # Telegram API return 400 if media length is greater than MAX_MEDIA_PER_MEDIAGROUP
+                if len(data['media']) > MAX_MEDIA_PER_MEDIAGROUP and self._max_media_control:
+                    data['media'] = data['media'][0:self._max_media_control]
+
+                # Telegram API can't parse media JSON object
                 data['media'] = json.dumps(data['media'])
         else:
             method = 'sendMessage'
@@ -888,7 +905,7 @@ class NewsPostman(object):
                 unique_list.append(item)
         # Hit cache test here
         list_set = {str(i) for i in unique_list}
-        if list_set != self._cache_list:
+        if list_set != self._cache_list or self._disable_cache:
             self._cache_list = list_set
         else:
             # print('List set is cached!')
