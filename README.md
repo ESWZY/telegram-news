@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/github/license/ESWZY/telegram-news)](https://github.com/ESWZY/telegram-news/blob/master/LICENSE)
 ![PyPI - Downloads](https://img.shields.io/pypi/dd/telegram-news)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/3c07fed525da42e89dd3d0376457b4d2)](https://app.codacy.com/manual/ESWZY/telegram-news?utm_source=github.com&utm_medium=referral&utm_content=ESWZY/telegram-news&utm_campaign=Badge_Grade_Dashboard)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FESWZY%2Ftelegram-news.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FESWZY%2Ftelegram-news?ref=badge_shield)
 
 Python package for automatically fetching and pushing news by Telegram.
 
@@ -81,3 +82,7 @@ Then, you will get messages like this in your channel or group:
 ## Example
 
 An example channel is [@wikinews_en](https://t.me/s/wikinews_en)
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FESWZY%2Ftelegram-news.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FESWZY%2Ftelegram-news?ref=badge_large)
