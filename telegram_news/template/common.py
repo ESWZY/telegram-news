@@ -96,6 +96,7 @@ class InfoExtractor(object):
     _outer_source_selector = None
     _outer_image_selector = None
     _outer_video_selector = None
+    _keep_media_link = True
 
     def __init__(self, lang=''):
         """Construct the class."""
@@ -143,6 +144,9 @@ class InfoExtractor(object):
 
     def set_outer_video_selector(self, selector):
         self._outer_video_selector = selector
+
+    def keep_media_link(self, enable=True):
+        self._keep_media_link = enable
 
     def set_id_policy(self, id_policy):
         self._id_policy = id_policy
@@ -296,7 +300,7 @@ class InfoExtractor(object):
         paragraphs = ""
         blank_flag = False
         for p in paragraph_select:
-            link_str = keep_link(str(p), url).strip('\u3000').strip('\n').strip()
+            link_str = keep_link(str(p), url, self._keep_media_link).strip('\u3000').strip('\n').strip()
 
             # If there is only ONE [Media] link, it should be concerned as a word.
             # This is the
@@ -485,7 +489,7 @@ class InfoExtractorJSON(InfoExtractor):
             else:
                 item['id'] = self._id_policy(item['link'])
             item['title'] = self._get_item_by_route(i, self._title_router)
-            item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'])
+            item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'], self._keep_media_link)
             item['time'] = self._get_item_by_route(i, self._time_router)
             item['source'] = self._get_item_by_route(i, self._source_router)
             image_temp = self._get_item_by_route(i, self._image_router)

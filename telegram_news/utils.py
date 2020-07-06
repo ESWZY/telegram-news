@@ -20,7 +20,7 @@ except Exception:  # For Python 3
     from urllib.parse import urlencode
 
 
-def keep_media(text, url):
+def keep_media(text, url, with_link=True):
     """
     Remove tags except media tags.
 
@@ -70,8 +70,11 @@ def keep_media(text, url):
                 # If the media link is a relative path
                 media_link = get_full_link(media_link, url)
 
-                # Embed the media as a link
-                result += '<a href=\"' + media_link + '\">' + '[Media]' + '</a>'
+                if with_link:
+                    # Embed the media as a link
+                    result += '<a href=\"' + media_link + '\">' + '[Media]' + '</a>'
+                else:
+                    result += '[Media]'
 
             # Remove the processed text from processing string
             cp = str(cp).replace(str(other[0]) + str(media), "")
@@ -80,14 +83,15 @@ def keep_media(text, url):
         return ' ' * blank_num + result + BeautifulSoup(cp, 'lxml').getText().replace('<', '&lt;').replace('>', '&gt;')
 
 
-def keep_img(text, url):
-    return keep_media(text, url)
+def keep_img(text, url, with_link=True):
+    return keep_media(text, url, with_link)
 
 
-def keep_link(text, url):
+def keep_link(text, url, with_media_link=True):
     """
     Remove tags except <a></a>, <img> and <video>. Otherwise, Telegram API will not parse.
 
+    :param with_media_link: boolean, whether keep media symbol link.
     :param text: raw text string.
     :param url: base url of the website.
     :return: processed string.
@@ -104,7 +108,7 @@ def keep_link(text, url):
 
     # No link here, return directly
     if not soup.select('a'):
-        return keep_media(text, url)
+        return keep_media(text, url, with_media_link)
 
     # Find link(s)
     else:
@@ -126,7 +130,7 @@ def keep_link(text, url):
             link_url = link.get('href')
 
             # Get plain text and concatenate with link
-            result += keep_media(other[0], url)
+            result += keep_media(other[0], url, with_media_link)
 
             # Not keep <a> without any text or link
             if content:
@@ -140,7 +144,7 @@ def keep_link(text, url):
             cp = str(cp).replace(str(other[0]) + str(link), "")
 
         # Return processed text and the plain text behind
-        return result + keep_media(cp, url)
+        return result + keep_media(cp, url, with_media_link)
 
 
 def is_single_media(text):
@@ -152,15 +156,18 @@ def is_single_media(text):
     """
     soup = BeautifulSoup(text, 'lxml')
 
-    # No <a> tag here, return directly
-    if not soup.select('a'):
-        return False
-    else:
+    # ONE <a> tag here, return True
+    if soup.select('a'):
         anchor = soup.select('a')[0]
 
         if anchor.getText() == '[Media]':
             if text.replace(str(anchor), '') == '':
                 return True
+
+    # ONE media plain stmbol here, return True
+    elif text.strip() == '[Media]':
+        return True
+
     return False
 
 
