@@ -300,7 +300,11 @@ class InfoExtractor(object):
         paragraphs = ""
         blank_flag = False
         for p in paragraph_select:
-            link_str = keep_link(str(p), url, self._keep_media_link).strip('\u3000').strip('\n').strip()
+
+            # Newline not works in html code
+            real_paragraph = str(p).replace('\n', '').replace('\r', '')
+
+            link_str = keep_link(real_paragraph, url, self._keep_media_link).strip('\u3000').strip('\n').strip()
 
             # If there is only ONE [Media] link, it should be concerned as a word.
             # This is the
