@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="/docs/banner.png" alt="Telegram-news">
+  <img src="https://github.com/ESWZY/telegram-news/blob/master/docs/images/banner.png" alt="Telegram-news">
   <br>Telegram-news<br>
 </h1>
 
@@ -44,7 +44,7 @@ $ python setup.py install
 
 It does not need much so that you can run your code anywhere.
 
-First, I assume you have a [Telegram account](https://web.telegram.org/#/login). Then, ask [@BotFather](https://t.me/botfather) for a bot and bot token. After that, create a public [channel](https://telegram.org/tour/channels) or [group](https://telegram.org/tour/groups), and remember chat id you just named.
+First, I assume you have a [Telegram account](https://web.telegram.org/#/login). Then, ask [@BotFather](https://t.me/botfather) for a bot and bot token. After that, create a public [channel](https://telegram.org/tour/channels) or [group](https://telegram.org/tour/groups), and remember chat id you just named. Do not forget to invate your bot into your channel or group.
 
 You also need a SQL database. Any SQL database is OK. Especially, I recommend [PostgreSQL](https://www.postgresql.org/).
 
@@ -103,21 +103,7 @@ np.poll()
 
 #### Result example
 
-><b>Bangladesh reports five new deaths due to COVID-19, a daily highest</b>
->
->Yesterday, [Bangladesh](https://en.wikinews.org/wiki/Bangladesh) has confirmed five new deaths due to [COVID-19](https://en.wikinews.org/wiki/COVID-19) on the day. This is the highest number of fatalities in a day due to the virus. As of yesterday, Bangladesh's [Institute of Epidemiology, Disease Control and Research](https://en.wikipedia.org/wiki/Institute_of_Epidemiology,_Disease_Control_and_Research) (IEDCR) reported the number of recorded infected cases included 114 active cases and 33 recovered cases who were staying home. A total of 17 deaths have been recorded.
->
->In an online news briefing, the director of IEDCR, Dr [Meerjady Sabrina Flora](https://en.wikipedia.org/wiki/Meerjady_Sabrina_Flora)
->
->A hospital official told Anadolu Agency, a local news outlet, that one of the deceased was Jalal Saifur Rahman, a director of Bengali Anti-Corruption Commission, who was cared for at the Kuwait Maitree Hospital.
->
->On Saturday, in an online video announcement, Bangladeshi Road Transport and Bridges Minister Obaidul Quader said public transport would be shut down for longer than initially planned, until this coming Saturday. This public transport shutdown had initially started on March 26 and was planned to end on Saturday, April 4. Transport of essential goods -- medical, fuel and food -- was still allowed.
->
->The first recorded incidents of COVID-19 infection in Bangladesh were on March 8, in two people who returned from Italy and also the wife of one of them. As of March 19, these three had already recovered.
->
->Wednesday, April 8, 2020
->
->[ "[COVID-19 Confirmed Patients](http://119.40.84.187/surveillance/)" - [IEDCR](https://en.wikipedia.org/wiki/IEDCR) ] [[Full Text](https://en.wikinews.org/wiki/Bangladesh_reports_five_new_deaths_due_to_COVID-19,_a_daily_highest?dpl_id=2891328)]
+![Demo 0](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo0.png)
 
 #### Example Channel
 
@@ -170,6 +156,19 @@ The handle for JSON and XML are quite similar. You can convert XML to JSON by fu
 You should use key list to recursively route to the information you want.
 
 ```python
+    import hashlib
+    import json
+    import os
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from telegram_news.template import InfoExtractorJSON, NewsPostmanJSON
+    from telegram_news.utils import xml_to_json
+    bot_token = os.getenv("TOKEN")
+    channel = os.getenv("CHANNEL")
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    engine = create_engine(DATABASE_URL)
+    db = Session(bind=engine.connect())
+
     url_3 = "https://www.scmp.com/rss/91/feed"
     tag_3 = "SCMP"
     table_name_3 = "scmpnews"
@@ -201,6 +200,20 @@ You should use key list to recursively route to the information you want.
     np_3.set_table_name(table_name_3)
     np_3.poll()
 ```
+
+Demo results:
+
+![Demo 1](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo1.png)
+
+![Demo 2](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo2.png)
+
+### Parallel Program
+
+If you use the same database and send to the same channel, you can simply joint each part of code block, and call `poll()` function simultaneously.
+
+An example wad uploaded to Gist: 
+
+https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
 
 ## Feedback
 
