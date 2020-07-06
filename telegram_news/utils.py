@@ -31,6 +31,8 @@ def keep_media(text, url):
     if not text:
         return ''
 
+    text = '<div>' + text + '</div>'    # text = '</div>blabla<div>'
+
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
 
