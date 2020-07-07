@@ -99,7 +99,9 @@ def keep_link(text, url, with_media_link=True):
     if not text:
         return ""
 
-    text = text.replace('<br>', '\n')    # TODO: this is useless?
+    text = text.replace('<br>', '\n')
+    text = text.replace('<br/>', '\n')
+    text = text.replace('<br[/s]*?/>', '\n')
 
     # Ignore HTML comment
     text = re.sub(r'<!--[\s\S]*?-->', '', text)

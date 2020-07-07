@@ -304,7 +304,7 @@ class InfoExtractor(object):
             # Newline not works in html code
             real_paragraph = str(p).replace('\n', '').replace('\r', '')
 
-            link_str = keep_link(real_paragraph, url, self._keep_media_link).strip('\u3000').strip('\n').strip()
+            link_str = keep_link(real_paragraph, url, self._keep_media_link).strip()
 
             # If there is only ONE [Media] link, it should be concerned as a word.
             # This is the
@@ -600,6 +600,7 @@ class NewsPostman(object):
     _max_list_length = math.inf
     _extractor = InfoExtractor()
     _disable_cache = False
+    _auto_retry = False
     _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
 
     # Cache the list webpage and check if modified
@@ -713,6 +714,9 @@ class NewsPostman(object):
     def disable_cache(self, disable=True):
         self._disable_cache = disable
 
+    def enable_auto_retry(self, enable=True):
+        self._auto_retry = enable
+
     def set_max_media_number(self, number):
         self._max_media_control = number
 
@@ -779,22 +783,27 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
+        if self._auto_retry:
+            random_para = {str(os.urandom(1)): str(os.urandom(1))}
+        else:
+            random_para = {}
+
         if ('images' in item and item['images']) or ('videos' in item and item['videos']):
             if len(item['images']) == 1 and len(item['videos']) == 0:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
-                data['photo'] = item['images'][0]
+                data['photo'] = add_parameters_into_url(item['images'][0], random_para)
             elif len(item['images']) == 0 and len(item['videos']) == 1:
                 method = 'sendVideo'
                 data['caption'] = data.pop('text')
-                data['video'] = item['videos'][0]
+                data['video'] = add_parameters_into_url(item['videos'][0], random_para)
             else:
                 method = 'sendMediaGroup'
                 data['media'] = []
                 for image in item['images']:
-                    data['media'].append({'type': 'photo', 'media': image})
+                    data['media'].append({'type': 'photo', 'media': add_parameters_into_url(image, random_para)})
                 for video in item['videos']:
-                    data['media'].append({'type': 'video', 'media': video})
+                    data['media'].append({'type': 'video', 'media': add_parameters_into_url(video, random_para)})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
 
@@ -808,7 +817,7 @@ class NewsPostman(object):
             method = 'sendMessage'
             text_name = 'text'  # Max length = 4096
 
-        # print(data)
+        print(data)
         return data, method
 
     @sleep_and_retry
