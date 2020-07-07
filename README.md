@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://github.com/ESWZY/telegram-news/blob/master/docs/images/banner.png" alt="Telegram-news">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/banner.png" alt="Telegram-news">
   <br>Telegram-news<br>
 </h1>
 
@@ -103,7 +103,7 @@ np.poll()
 
 #### Result example
 
-![Demo 0](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo0.png)
+<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo0.png" alt="Demo 0" width="40%">
 
 #### Example Channel
 
@@ -203,9 +203,8 @@ You should use key list to recursively route to the information you want.
 
 Demo results:
 
-![Demo 1](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo1.png)
-
-![Demo 2](https://github.com/ESWZY/telegram-news/blob/master/docs/images/demo2.png)
+<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo1.png" alt="Demo 1" width="40%">
+<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo2.png" alt="Demo 2" width="40%">
 
 ### Parallel Program
 
