@@ -10,7 +10,7 @@ Python package for automatically fetching and pushing news by Telegram.
 [![PyPI](https://img.shields.io/pypi/v/telegram-news)](https://pypi.org/project/telegram-news/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/telegram-news?logo=python)
 [![License](https://img.shields.io/github/license/ESWZY/telegram-news)](https://github.com/ESWZY/telegram-news/blob/master/LICENSE)
-![PyPI - Downloads](https://img.shields.io/pypi/dd/telegram-news)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/telegram-news)
 
 [![Build Status](https://img.shields.io/travis/ESWZY/telegram-news/master?logo=travis)](https://travis-ci.org/ESWZY/telegram-news)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/3c07fed525da42e89dd3d0376457b4d2)](https://app.codacy.com/manual/ESWZY/telegram-news?utm_source=github.com&utm_medium=referral&utm_content=ESWZY/telegram-news&utm_campaign=Badge_Grade_Dashboard)
@@ -51,8 +51,6 @@ You also need a SQL database. Any SQL database is OK. Especially, I recommend [P
 ## Usage
 
 ### Basic Example
-
-#### Code
 
 ```python
 import os
@@ -101,9 +99,12 @@ np.set_table_name(table_name)
 np.poll()
 ```
 
-#### Result example
+Typical example:
 
-<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo0.png" alt="Demo 0" width="40%">
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo1.png" alt="Demo 1" width="40%">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo2.png" alt="Demo 2" width="40%">
+</div>
 
 #### Example Channel
 
@@ -112,42 +113,49 @@ An example channel is [@wikinews_en](https://t.me/s/wikinews_en)
 ### Advanced Example
 
 ```python
-    import os
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-    from telegram_news.template import InfoExtractor, NewsPostman
-    bot_token = os.getenv("TOKEN")
-    channel = os.getenv("CHANNEL")
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    engine = create_engine(DATABASE_URL)
-    db = Session(bind=engine.connect())
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from telegram_news.template import InfoExtractor, NewsPostman
+bot_token = os.getenv("TOKEN")
+channel = os.getenv("CHANNEL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
+db = Session(bind=engine.connect())
 
-    # Above code is as same as the basic example, you can reuse those code directly
+# Above code is as same as the basic example, you can reuse those code directly
 
-    url_2 = "https://www.cnbeta.com/"
-    tag_2 = "cnBeta"
-    table_name_2 = "cnbetanews"
-    
-    ie_2 = InfoExtractor()
-    ie_2.set_list_selector('.items-area > div > dl > dt > a')
-    ie_2.set_title_selector('header > h1')
-    
-    # Select many target at same time    
-    ie_2.set_paragraph_selector('div.cnbeta-article-body > div.article-summary > p, '  # Summary only
-                                'div.cnbeta-article-body > div.article-content > p')   # Content only
-    ie_2.set_time_selector('header > div > span:nth-child(1)')
-    ie_2.set_source_selector('header > div > span.source')
-    
-    # Select image to display, then the max length is down to 1024
-    ie_2.set_image_selector('div.cnbeta-article-body > div.article-summary > p img, '  # From summary only
-                            'div.cnbeta-article-body > div.article-content > p img')   # From content only
-    ie_2.max_post_length = 1000
+url_2 = "https://www.cnbeta.com/"
+tag_2 = "cnBeta"
+table_name_2 = "cnbetanews"
 
-    np_2 = NewsPostman(listURLs=[url_2, ], sendList=[channel], tag=tag_2, db=db)
-    np_2.set_extractor(ie_2)
-    np_2.set_table_name(table_name_2)
-    np_2.poll()
+ie_2 = InfoExtractor()
+ie_2.set_list_selector('.items-area > div > dl > dt > a')
+ie_2.set_title_selector('header > h1')
+
+# Select many target at same time    
+ie_2.set_paragraph_selector('div.cnbeta-article-body > div.article-summary > p, '  # Summary only
+                            'div.cnbeta-article-body > div.article-content > p')   # Content only
+ie_2.set_time_selector('header > div > span:nth-child(1)')
+ie_2.set_source_selector('header > div > span.source')
+
+# Select image to display, then the max length is down to 1024
+ie_2.set_image_selector('div.cnbeta-article-body > div.article-summary > p img, '  # From summary only
+                        'div.cnbeta-article-body > div.article-content > p img')   # From content only
+ie_2.max_post_length = 1000
+
+np_2 = NewsPostman(listURLs=[url_2, ], sendList=[channel], tag=tag_2, db=db)
+np_2.set_extractor(ie_2)
+np_2.set_table_name(table_name_2)
+np_2.poll()
 ```
+
+Typical example:
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo3.png" alt="Demo 3" width="40%">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo4.png" alt="Demo 4" width="40%">
+</div>
 
 ### Advanced Example for JSON and XML
 
@@ -156,55 +164,57 @@ The handle for JSON and XML are quite similar. You can convert XML to JSON by fu
 You should use key list to recursively route to the information you want.
 
 ```python
-    import hashlib
-    import json
-    import os
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-    from telegram_news.template import InfoExtractorJSON, NewsPostmanJSON
-    from telegram_news.utils import xml_to_json
-    bot_token = os.getenv("TOKEN")
-    channel = os.getenv("CHANNEL")
-    DATABASE_URL = os.getenv("DATABASE_URL")
-    engine = create_engine(DATABASE_URL)
-    db = Session(bind=engine.connect())
+import hashlib
+import json
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from telegram_news.template import InfoExtractorJSON, NewsPostmanJSON
+from telegram_news.utils import xml_to_json
+bot_token = os.getenv("TOKEN")
+channel = os.getenv("CHANNEL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
+db = Session(bind=engine.connect())
 
-    url_3 = "https://www.scmp.com/rss/91/feed"
-    tag_3 = "SCMP"
-    table_name_3 = "scmpnews"
-    
-    ie_3 = InfoExtractorJSON()
-    
-    # Pre-process the XML string, convert to JSON string
-    def list_pre_process(text):
-        text = json.loads(xml_to_json(text))
-        return json.dumps(text)
-    ie_3.set_list_pre_process_policy(list_pre_process)
-    
-    # Route by key list
-    ie_3.set_list_router(['rss', 'channel', 'item'])
-    ie_3.set_link_router(['link'])
-    ie_3.set_title_router(['title'])
-    ie_3.set_paragraphs_router(['description'])
-    ie_3.set_time_router(['pubDate'])
-    ie_3.set_source_router(['author'])
-    ie_3.set_image_router(['media:thumbnail', '@url'])
-    
-    # Customize ID for news item
-    def id_policy(link):
-        return hashlib.md5(link.encode("utf-8")).hexdigest()
-    ie_3.set_id_policy(id_policy)
-    
-    np_3 = NewsPostmanJSON(listURLs=[url_3], sendList=[channel], db=db, tag=tag_3)
-    np_3.set_extractor(ie_3)
-    np_3.set_table_name(table_name_3)
-    np_3.poll()
+url_3 = "https://www.scmp.com/rss/91/feed"
+tag_3 = "SCMP"
+table_name_3 = "scmpnews"
+
+ie_3 = InfoExtractorJSON()
+
+# Pre-process the XML string, convert to JSON string
+def list_pre_process(text):
+    text = json.loads(xml_to_json(text))
+    return json.dumps(text)
+ie_3.set_list_pre_process_policy(list_pre_process)
+
+# Route by key list
+ie_3.set_list_router(['rss', 'channel', 'item'])
+ie_3.set_link_router(['link'])
+ie_3.set_title_router(['title'])
+ie_3.set_paragraphs_router(['description'])
+ie_3.set_time_router(['pubDate'])
+ie_3.set_source_router(['author'])
+ie_3.set_image_router(['media:thumbnail', '@url'])
+
+# Customize ID for news item
+def id_policy(link):
+    return hashlib.md5(link.encode("utf-8")).hexdigest()
+ie_3.set_id_policy(id_policy)
+
+np_3 = NewsPostmanJSON(listURLs=[url_3], sendList=[channel], db=db, tag=tag_3)
+np_3.set_extractor(ie_3)
+np_3.set_table_name(table_name_3)
+np_3.poll()
 ```
 
-Demo results:
+Typical example:
 
-<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo1.png" alt="Demo 1" width="40%">
-<img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo2.png" alt="Demo 2" width="40%">
+<div align="center">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo5.png" alt="Demo 5" width="40%">
+  <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo6.png" alt="Demo 6" width="40%">
+</div>
 
 ### Parallel Program
 
