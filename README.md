@@ -14,6 +14,7 @@ Python package for automatically fetching and pushing news by Telegram.
 
 [![Build Status](https://img.shields.io/travis/ESWZY/telegram-news/master?logo=travis)](https://travis-ci.org/ESWZY/telegram-news)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/3c07fed525da42e89dd3d0376457b4d2)](https://app.codacy.com/manual/ESWZY/telegram-news?utm_source=github.com&utm_medium=referral&utm_content=ESWZY/telegram-news&utm_campaign=Badge_Grade_Dashboard)
+![Last commit](https://img.shields.io/github/last-commit/ESWZY/telegram-news)
 [![https://t.me/eswzy](https://img.shields.io/badge/Telegram-ESWZY-blue.svg?logo=telegram)](https://t.me/eswzy)
 
 </div>
@@ -223,6 +224,23 @@ If you use the same database and send to the same channel, you can simply joint 
 An example wad uploaded to Gist: 
 
 https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
+
+## TODO
+
+- [x] HTML item list
+- [x] JSON item list
+- [x] XML item list
+- [x] Send Image
+- [ ] Send Video
+- [x] Send media group
+- [ ] Send file
+- [ ] Send audio
+- [x] File sending retry
+- [ ] CC as e-mail
+- [ ] Webhook
+- [ ] Update message by message ID
+- [ ] Document
+- [ ] GUI
 
 ## Feedback
 
