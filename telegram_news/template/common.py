@@ -35,6 +35,7 @@ from ..utils import (
     get_full_link,
     xml_to_json,
     add_parameters_into_url,
+    get_video_from_select,
 )
 from ..constant import (
     MAX_MEDIA_PER_MEDIAGROUP,
@@ -240,7 +241,7 @@ class InfoExtractor(object):
             if self._outer_image_selector:
                 try:
                     tags = soup2.select(self._outer_image_selector)
-                    item['images'] = [get_full_link(img.get('src'), listURL) for img in tags]
+                    item['images'] = [get_full_link(img.get('src'), listURL) for img in tags if get_full_link(img.get('src'), listURL)]
                 except IndexError:
                     item['images'] = []
             else:
@@ -248,8 +249,8 @@ class InfoExtractor(object):
 
             if self._outer_video_selector:
                 try:
-                    tags = soup2.select(self._outer_video_selector)
-                    item['videos'] = [get_full_link(vid.get('src'), listURL) for vid in tags]
+                    tags_select = soup2.select(self._outer_video_selector)
+                    item['videos'] = get_video_from_select(tags_select, item['link'])
                 except IndexError:
                     item['videos'] = []
             else:
@@ -377,7 +378,7 @@ class InfoExtractor(object):
             return []
         soup = BeautifulSoup(text, 'lxml')
         tags_select = soup.select(self._image_selector)
-        images = [get_full_link(img.get('src'), item['link']) for img in tags_select]
+        images = [get_full_link(img.get('src'), item['link']) for img in tags_select if get_full_link(img.get('src'), item['link'])]
         return images
 
     def get_video_policy(self, text, item):
@@ -394,8 +395,7 @@ class InfoExtractor(object):
             return []
         soup = BeautifulSoup(text, 'lxml')
         tags_select = soup.select(self._video_selector)
-        videos = [get_full_link(vid.get('src'), item['link']) for vid in tags_select]
-        return videos
+        return get_video_from_select(tags_select, item['link'])
 
 
 class InfoExtractorJSON(InfoExtractor):
@@ -817,7 +817,7 @@ class NewsPostman(object):
             method = 'sendMessage'
             text_name = 'text'  # Max length = 4096
 
-        print(data)
+        # print(data)
         return data, method
 
     @sleep_and_retry

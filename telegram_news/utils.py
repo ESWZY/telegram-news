@@ -249,3 +249,14 @@ def get_full_width(text, get_full_width_char, get_full_width_number, get_full_wi
                 '`': '｀', '{': '｛', '|': '｜', '}': '｝', '~': '～'}
         text = text.translate(str.maketrans(set3))
     return text
+
+
+def get_video_from_select(tags_select, link):
+    videos = []
+    for vid in tags_select:
+        if vid.get('src'):
+            videos.append(get_full_link(vid.get('src'), link))
+        elif vid.find('source'):
+            if vid.find('source').get('src'):
+                videos.append(get_full_link(vid.find('source').get('src'), link))
+    return videos

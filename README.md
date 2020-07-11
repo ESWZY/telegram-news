@@ -231,7 +231,7 @@ https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
 - [x] JSON item list
 - [x] XML item list
 - [x] Send Image
-- [ ] Send Video
+- [x] Send Video
 - [x] Send media group
 - [ ] Send file
 - [ ] Send audio
