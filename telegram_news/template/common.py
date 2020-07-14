@@ -212,7 +212,7 @@ class InfoExtractor(object):
             if self._outer_paragraph_selector:
                 try:
                     paragraphs = [
-                        x.get_text().strip()
+                        keep_link(str(x), listURL)
                         for x in soup2.select(self._outer_paragraph_selector)
                         if x.get_text().strip()
                     ]
@@ -232,7 +232,7 @@ class InfoExtractor(object):
 
             if self._outer_source_selector:
                 try:
-                    item['source'] = soup2.select(self._outer_source_selector)[0].get_text().strip()
+                    item['source'] = keep_link(soup2.select(self._outer_source_selector)[0], listURL)
                 except IndexError:
                     item['source'] = ''
             else:
