@@ -107,10 +107,6 @@ Typical example:
   <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo2.png" alt="Demo 2" width="40%">
 </div>
 
-#### Example Channel
-
-An example channel is [@wikinews_en](https://t.me/s/wikinews_en)
-
 ### Advanced Example
 
 ```python
@@ -221,9 +217,15 @@ Typical example:
 
 If you use the same database and send to the same channel, you can simply joint each part of code block, and call `poll()` function simultaneously.
 
-An example wad uploaded to Gist: 
+An example was uploaded to Gist: 
 
 https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
+
+## Example Channel
+
+A Telegram channel of [basic example](https://github.com/ESWZY/telegram-news#basic-example) for English Wikinews: [@wikinews_en](https://t.me/s/wikinews_en) (in English)
+
+A Telegram channel for realtime earthquake warning powered by Telegram-news: [@earthquake_alert](https://t.me/s/earthquake_alert) (in Chinese)
 
 ## TODO
 
@@ -245,6 +247,8 @@ https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
 ## Feedback
 
 Feel free to contact with me if you have any question. Also welcome any contribute.
+
+If you build a channel by this, don't forget to share that good news with us!
 
 ## License
 
