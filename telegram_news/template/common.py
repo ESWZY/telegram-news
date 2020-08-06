@@ -601,6 +601,7 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
     _disable_cache = False
     _auto_retry = False
+    _data_post_process = None
     _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
 
     # Cache the list webpage and check if modified
@@ -717,6 +718,9 @@ class NewsPostman(object):
     def enable_auto_retry(self, enable=True):
         self._auto_retry = enable
 
+    def set_data_post_process(self, data_post_process):
+        self._data_post_process = data_post_process
+
     def set_max_media_number(self, number):
         self._max_media_control = number
 
@@ -760,7 +764,7 @@ class NewsPostman(object):
         images = self._extractor.get_image_policy(text, item)
         videos = self._extractor.get_video_policy(text, item)
 
-        return {
+        data = {
             'title': title,
             'time': publish_time,
             'source': source,
@@ -769,6 +773,11 @@ class NewsPostman(object):
             'images': images,
             'videos': videos,
         }
+
+        if self._data_post_process:
+            data = self._data_post_process(data)
+
+        return data
 
     def _data_format(self, item, news_id):
 
