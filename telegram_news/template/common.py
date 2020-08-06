@@ -232,7 +232,7 @@ class InfoExtractor(object):
 
             if self._outer_source_selector:
                 try:
-                    item['source'] = keep_link(soup2.select(self._outer_source_selector)[0], listURL)
+                    item['source'] = keep_link(soup2.select(self._outer_source_selector)[0].get_text().strip(), listURL)
                 except IndexError:
                     item['source'] = ''
             else:
