@@ -8,16 +8,44 @@ Add new ones when possible.
 
 import json
 import re
+import os
 
 import xmltodict
 from bs4 import BeautifulSoup
 
 try:
     import urlparse
-    from urllib import urlencode
+    from urlparse import (
+        urlunparse,
+        parse_qsl,
+        urljoin,
+    )
+    from urllib import (
+        urlencode,
+        quote,
+        URLopener
+    )
 except Exception:  # For Python 3
-    import urllib.parse as urlparse
-    from urllib.parse import urlencode
+    from urllib.parse import (
+        urlparse,
+        urlunparse,
+        parse_qsl,
+        urljoin,
+        urlencode,
+        quote
+    )
+    from urllib.request import URLopener
+
+try:
+    from urllib.request import (
+        urlretrieve,
+        urlopen
+    )
+except Exception:
+    from urllib import (
+        urlretrieve,
+        urlopen
+    )
 
 
 def keep_media(text, url, with_link=True):
@@ -180,7 +208,7 @@ def str_url_encode(text):
     :param text: string.
     :return: string.
     """
-    return urlparse.quote(text)
+    return quote(text)
 
 
 def get_full_link(link, base_url):
@@ -192,7 +220,7 @@ def get_full_link(link, base_url):
     :return: full url.
     """
     if link is not None:
-        return urlparse.urljoin(base_url, link)
+        return urljoin(base_url, link)
     else:
         return ''
 
@@ -205,11 +233,11 @@ def add_parameters_into_url(url, parameters):
     :param parameters: dict.
     :return: url string.
     """
-    url_parts = list(urlparse.urlparse(url))
-    query = dict(urlparse.parse_qsl(url_parts[4]))
+    url_parts = list(urlparse(url))
+    query = dict(parse_qsl(url_parts[4]))
     query.update(parameters)
     url_parts[4] = urlencode(query)
-    return urlparse.urlunparse(url_parts)
+    return urlunparse(url_parts)
 
 
 def xml_to_json(xml_str):
@@ -260,3 +288,27 @@ def get_video_from_select(tags_select, link):
             if vid.find('source').get('src'):
                 videos.append(get_full_link(vid.find('source').get('src'), link))
     return videos
+
+
+def download_file_by_url(url, filename=None, header=None):
+    if not filename:
+        filename = os.path.basename(urlparse(url).path)
+    if os.path.exists(filename):
+        return
+    try:
+        opener = URLopener()
+        opener.addheader('User-Agent', header['User-Agent'])
+        opener.retrieve(url=url, filename=filename)
+    except Exception as e:
+        print('Retrieve url failed for:', url, e)
+        print('Retry by another way!')
+        urlretrieve(url=url, filename=filename)
+
+
+def get_network_file(url):
+    return urlopen(url)
+
+
+def get_ext_from_url(url):
+    path = urlparse(url).path
+    return os.path.splitext(path)[1]

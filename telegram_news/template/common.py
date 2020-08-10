@@ -8,6 +8,7 @@ class for JSON and XML format data. Maybe have more subclasses for other
 situations.
 """
 
+import hashlib
 import json
 import math
 import os
@@ -36,6 +37,9 @@ from ..utils import (
     xml_to_json,
     add_parameters_into_url,
     get_video_from_select,
+    download_file_by_url,
+    get_network_file,
+    get_ext_from_url
 )
 from ..constant import (
     MAX_MEDIA_PER_MEDIAGROUP,
@@ -601,8 +605,11 @@ class NewsPostman(object):
     _extractor = InfoExtractor()
     _disable_cache = False
     _auto_retry = False
+    _download_and_send = False
     _data_post_process = None
     _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
+    _attach_number = 0
+    _attachments_dir =  os.path.join(os.getcwd(), 'attachments')
 
     # Cache the list webpage and check if modified
     _cache_list = os.urandom(10)
@@ -623,6 +630,7 @@ class NewsPostman(object):
                               'Chrome/80 Safari/537.36'
             }
         self._proxies = proxies
+        self._attach_number = 0
 
     @staticmethod
     def set_bot_token(new_token):
@@ -718,6 +726,13 @@ class NewsPostman(object):
     def enable_auto_retry(self, enable=True):
         self._auto_retry = enable
 
+    def enable_download_and_send(self, enable=True, attachments_dir=None):
+        if attachments_dir:
+            self._attachments_dir = attachments_dir
+        if enable:
+            print('Attachments will be downloaded to', self._attachments_dir)
+        self._download_and_send = enable
+
     def set_data_post_process(self, data_post_process):
         self._data_post_process = data_post_process
 
@@ -779,6 +794,26 @@ class NewsPostman(object):
 
         return data
 
+    def _file_send_policy(self, url, data):
+        """It will change the value in `data`, without returning `data`!"""
+        if self._attach_number > MAX_MEDIA_PER_MEDIAGROUP:
+            return None
+        self._attach_number += 1
+
+        if self._auto_retry:
+            url = add_parameters_into_url(url, {str(os.urandom(1)): str(os.urandom(1))})
+        if self._download_and_send:
+            print('Downloading:', url)
+            name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
+
+            if not os.path.exists(self._attachments_dir):
+                os.mkdir(self._attachments_dir)
+            download_file_by_url(url, os.path.join(self._attachments_dir, name), header=self._headers)
+            data['files'][name] = open(os.path.join(self._attachments_dir, name), 'rb') # get_network_file(url)
+            return f'attach://{name}'
+        return url
+
+
     def _data_format(self, item, news_id):
 
         # Get display policy by "item" information
@@ -792,33 +827,29 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
-        if self._auto_retry:
-            random_para = {str(os.urandom(1)): str(os.urandom(1))}
-        else:
-            random_para = {}
-
+        data['files'] = {}
         if ('images' in item and item['images']) or ('videos' in item and item['videos']):
             if len(item['images']) == 1 and len(item['videos']) == 0:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
-                data['photo'] = add_parameters_into_url(item['images'][0], random_para)
+                data['photo'] = self._file_send_policy(item['images'][0], data)
             elif len(item['images']) == 0 and len(item['videos']) == 1:
                 method = 'sendVideo'
                 data['caption'] = data.pop('text')
-                data['video'] = add_parameters_into_url(item['videos'][0], random_para)
+                data['video'] = self._file_send_policy(item['videos'][0], data)
             else:
                 method = 'sendMediaGroup'
                 data['media'] = []
                 for image in item['images']:
-                    data['media'].append({'type': 'photo', 'media': add_parameters_into_url(image, random_para)})
+                    data['media'].append({'type': 'photo', 'media': self._file_send_policy(image, data)})
                 for video in item['videos']:
-                    data['media'].append({'type': 'video', 'media': add_parameters_into_url(video, random_para)})
+                    data['media'].append({'type': 'video', 'media': self._file_send_policy(video, data)})
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
 
                 # Telegram API return 400 if media length is greater than MAX_MEDIA_PER_MEDIAGROUP
                 if len(data['media']) > MAX_MEDIA_PER_MEDIAGROUP and self._max_media_control:
-                    data['media'] = data['media'][0:self._max_media_control]
+                    data['media'] = data['media'][0: self._max_media_control]
 
                 # Telegram API can't parse media JSON object
                 data['media'] = json.dumps(data['media'])
@@ -826,22 +857,21 @@ class NewsPostman(object):
             method = 'sendMessage'
             text_name = 'text'  # Max length = 4096
 
-        # print(data)
+        self._attach_number = 0
+        if self._DEBUG:
+            print(data)
         return data, method
 
     @sleep_and_retry
     @limits(calls=1, period=1)
     def _real_post(self, token, method, data):
         # https://core.telegram.org/bots/api#sendmessage
-        res = requests.post('https://api.telegram.org/bot' + token + '/' + method, data, proxies=self._proxies)
+        res = requests.post('https://api.telegram.org/bot' + token + '/' + method, data, files=data['files'], proxies=self._proxies)
         return res
 
     def _post(self, item, news_id):
 
-        data, method = self._data_format(item, news_id)
-
         res = None
-
         isposted_flags = [0] * len(self._sendList)
         candidate_list = self._sendList
 
@@ -852,6 +882,10 @@ class NewsPostman(object):
             for token in self._TOKENS:
                 if not token:
                     continue
+
+                # Get formatted sending data
+                # Reopen files for each sending
+                data, method = self._data_format(item, news_id)
 
                 data['chat_id'] = chat_id
 
