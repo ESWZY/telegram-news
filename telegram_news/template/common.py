@@ -39,7 +39,8 @@ from ..utils import (
     get_video_from_select,
     download_file_by_url,
     get_network_file,
-    get_ext_from_url
+    get_ext_from_url,
+    extract_video_config
 )
 from ..constant import (
     MAX_MEDIA_PER_MEDIAGROUP,
@@ -794,7 +795,36 @@ class NewsPostman(object):
 
         return data
 
-    def _file_send_policy(self, url, data):
+    def _video_send_policy(self, url, data):
+        """It will change the value in `data`, without returning `data`!"""
+        if self._attach_number > MAX_MEDIA_PER_MEDIAGROUP:
+            return None, '', 0, 0, 0
+        self._attach_number += 1
+
+        if self._auto_retry:
+            url = add_parameters_into_url(url, {str(os.urandom(1)): str(os.urandom(1))})
+        if self._download_and_send:
+            if not os.path.exists(self._attachments_dir):
+                os.mkdir(self._attachments_dir)
+
+            video_name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
+            thumb_name = hashlib.md5(url.encode('utf-8')).hexdigest() + '.jpg'
+            video_full_name = os.path.join(self._attachments_dir, video_name)
+            thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
+
+            print('Downloading video:', url)
+            download_file_by_url(url, video_full_name, header=self._headers)
+            data['files'][video_name] = open(video_full_name, 'rb')
+
+            has_thumb, duration, width, height = extract_video_config(video_full_name, thumb_full_name)
+            if has_thumb:
+                data['files'][thumb_name] = open(thumb_full_name, 'rb')
+                return f'attach://{video_name}', f'attach://{thumb_name}', duration, width, height
+            return f'attach://{video_name}', '', duration, width, height
+
+        return url, '', 0, 0, 0
+
+    def _photo_send_policy(self, url, data):
         """It will change the value in `data`, without returning `data`!"""
         if self._attach_number > MAX_MEDIA_PER_MEDIAGROUP:
             return None
@@ -803,16 +833,18 @@ class NewsPostman(object):
         if self._auto_retry:
             url = add_parameters_into_url(url, {str(os.urandom(1)): str(os.urandom(1))})
         if self._download_and_send:
-            print('Downloading:', url)
-            name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
-
             if not os.path.exists(self._attachments_dir):
                 os.mkdir(self._attachments_dir)
-            download_file_by_url(url, os.path.join(self._attachments_dir, name), header=self._headers)
-            data['files'][name] = open(os.path.join(self._attachments_dir, name), 'rb') # get_network_file(url)
-            return f'attach://{name}'
-        return url
 
+            photo_name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
+            photo_full_name = os.path.join(self._attachments_dir, photo_name)
+
+            print('Downloading photo:', url)
+            download_file_by_url(url, photo_full_name, header=self._headers)
+            data['files'][photo_name] = open(photo_full_name, 'rb')
+            return f'attach://{photo_name}'
+
+        return url
 
     def _data_format(self, item, news_id):
 
@@ -832,18 +864,28 @@ class NewsPostman(object):
             if len(item['images']) == 1 and len(item['videos']) == 0:
                 method = 'sendPhoto'
                 data['caption'] = data.pop('text')
-                data['photo'] = self._file_send_policy(item['images'][0], data)
+                data['photo'] = self._photo_send_policy(item['images'][0], data)
             elif len(item['images']) == 0 and len(item['videos']) == 1:
                 method = 'sendVideo'
                 data['caption'] = data.pop('text')
-                data['video'] = self._file_send_policy(item['videos'][0], data)
+                data['video'], data['thumb'], data['duration'], data['width'], data['height'] = self._video_send_policy(item['videos'][0], data)
+                data['supports_streaming'] = True
             else:
                 method = 'sendMediaGroup'
                 data['media'] = []
                 for image in item['images']:
-                    data['media'].append({'type': 'photo', 'media': self._file_send_policy(image, data)})
+                    data['media'].append({'type': 'photo', 'media': self._photo_send_policy(image, data)})
                 for video in item['videos']:
-                    data['media'].append({'type': 'video', 'media': self._file_send_policy(video, data)})
+                    media, thumb, duration, width, height = self._video_send_policy(video, data)
+                    data['media'].append({
+                        'type': 'video',
+                        'media': media,
+                        'thumb': thumb,
+                        'supports_streaming': True,
+                        'width': width,
+                        'height': height,
+                        'duration': duration
+                    })
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
 

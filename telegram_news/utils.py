@@ -9,6 +9,8 @@ Add new ones when possible.
 import json
 import re
 import os
+import requests
+import math
 
 import xmltodict
 from bs4 import BeautifulSoup
@@ -59,7 +61,7 @@ def keep_media(text, url, with_link=True):
     if not text:
         return ''
 
-    text = '<div>' + text + '</div>'    # text = '</div>blabla<div>'
+    text = '<div>' + text + '</div>'  # text = '</div>blabla<div>'
 
     soup = BeautifulSoup(text, 'lxml')
     # print(text)
@@ -264,8 +266,8 @@ def get_full_width(text, get_full_width_char, get_full_width_number, get_full_wi
     """
 
     if get_full_width_char:
-        set1 = {chr(0x0041 + i): chr(0xFF21 + i) for i in range(26)}    # A -> Ａ
-        set2 = {chr(0x0061 + i): chr(0xFF41 + i) for i in range(26)}    # a -> ａ
+        set1 = {chr(0x0041 + i): chr(0xFF21 + i) for i in range(26)}  # A -> Ａ
+        set2 = {chr(0x0061 + i): chr(0xFF41 + i) for i in range(26)}  # a -> ａ
         text = text.translate(str.maketrans(set1))
         text = text.translate(str.maketrans(set2))
     if get_full_width_number:
@@ -295,14 +297,9 @@ def download_file_by_url(url, filename=None, header=None):
         filename = os.path.basename(urlparse(url).path)
     if os.path.exists(filename):
         return
-    try:
-        opener = URLopener()
-        opener.addheader('User-Agent', header['User-Agent'])
-        opener.retrieve(url=url, filename=filename)
-    except Exception as e:
-        print('Retrieve url failed for:', url, e)
-        print('Retry by another way!')
-        urlretrieve(url=url, filename=filename)
+    r = requests.get(url, headers=header)
+    with open(filename, 'wb') as f:
+        f.write(r.content)
 
 
 def get_network_file(url):
@@ -312,3 +309,23 @@ def get_network_file(url):
 def get_ext_from_url(url):
     path = urlparse(url).path
     return os.path.splitext(path)[1]
+
+
+def extract_video_config(video_full_name, thumb_full_name):
+    """Get configs and thumbnail of the video, by OpenCV."""
+    try:
+        import cv2
+    except ModuleNotFoundError:
+        print('You do not have cv2 module, please install by yourself!')
+        return False, 0, 640, 360
+    cam = cv2.VideoCapture(video_full_name)
+
+    duration = cam.get(cv2.CAP_PROP_FRAME_COUNT) / cam.get(cv2.CAP_PROP_FPS)
+    width = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    success, image = cam.read()
+    if success:
+        cv2.imwrite(thumb_full_name, image)
+        return True, math.ceil(duration), int(width), int(height)
+    return False, math.ceil(duration), int(width), int(height)
