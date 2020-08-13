@@ -11,6 +11,7 @@ import re
 import os
 import requests
 import math
+import hashlib
 
 import xmltodict
 from bs4 import BeautifulSoup
@@ -281,6 +282,10 @@ def get_full_width(text, get_full_width_char, get_full_width_number, get_full_wi
     return text
 
 
+def get_hash(string):
+    return hashlib.md5(string.encode('utf-8')).hexdigest()
+
+
 def get_video_from_select(tags_select, link):
     videos = []
     for vid in tags_select:
@@ -318,6 +323,7 @@ def extract_video_config(video_full_name, thumb_full_name):
     except ModuleNotFoundError:
         print('You do not have cv2 module, please install by yourself!')
         return False, 0, 640, 360
+
     cam = cv2.VideoCapture(video_full_name)
 
     duration = cam.get(cv2.CAP_PROP_FRAME_COUNT) / cam.get(cv2.CAP_PROP_FPS)
@@ -329,3 +335,36 @@ def extract_video_config(video_full_name, thumb_full_name):
         cv2.imwrite(thumb_full_name, image)
         return True, math.ceil(duration), int(width), int(height)
     return False, math.ceil(duration), int(width), int(height)
+
+
+def detect_and_download_video(url, path, name):
+    """Detect and download video in page, return video name, by Youtube-DL."""
+    try:
+        import youtube_dl
+    except ModuleNotFoundError:
+        print('You do not have youtube-dl, please install by yourself!')
+        return None
+
+    # Specific file name, disable logs and warnings
+    ydl_opts = {'outtmpl': os.path.join(path, name) + '.%(ext)s', 'quiet': True, 'no_warnings': True}
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        try:
+            meta = ydl.extract_info(url, download=True)
+        except Exception:
+            return None
+
+    if len(meta['entries']) > 0:
+        return name + '.' + meta['entries'][0]['ext']
+    else:
+        return None
+
+
+def get_file_length(url):
+    res = requests.get(url, stream=True)
+    if res.status_code == 200:
+        if 'Content-Length' in res.headers:
+            return res.headers['Content-Length']
+        else:
+            return -1
+    else:
+        return 0

@@ -15,6 +15,7 @@ import os
 import random
 import threading
 import traceback
+import warnings
 from time import sleep
 
 import requests
@@ -36,11 +37,13 @@ from ..utils import (
     get_full_link,
     xml_to_json,
     add_parameters_into_url,
+    get_hash,
     get_video_from_select,
     download_file_by_url,
     get_network_file,
     get_ext_from_url,
-    extract_video_config
+    extract_video_config,
+    detect_and_download_video
 )
 from ..constant import (
     MAX_MEDIA_PER_MEDIAGROUP,
@@ -610,6 +613,7 @@ class NewsPostman(object):
     _disable_cache = False
     _auto_retry = False
     _download_and_send = False
+    _video_detect = False
     _data_post_process = None
     _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
     _attach_number = 0
@@ -737,6 +741,13 @@ class NewsPostman(object):
             print('Attachments will be downloaded to', self._attachments_dir)
         self._download_and_send = enable
 
+    def enable_video_detect(self, enable=True):
+        if self._download_and_send:
+            self._video_detect = enable
+        else:
+            warnings.warn('Enable video detection failed! You must enable download_and_send first!', stacklevel=2)
+            exit(1)
+
     def set_data_post_process(self, data_post_process):
         self._data_post_process = data_post_process
 
@@ -798,6 +809,15 @@ class NewsPostman(object):
 
         return data
 
+    def _video_detect_policy(self, page_url, data):
+        video_name = detect_and_download_video(page_url, self._attachments_dir, get_hash(page_url))
+        if video_name:
+            data['videos'].append(f'attach://{video_name}')
+            video_full_path = os.path.join(self._attachments_dir, video_name)
+            data['files'][video_name] = open(video_full_path, 'rb')
+            return video_full_path
+        return None
+
     def _video_send_policy(self, url, data):
         """It will change the value in `data`, without returning `data`!"""
         if self._attach_number > MAX_MEDIA_PER_MEDIAGROUP:
@@ -815,9 +835,16 @@ class NewsPostman(object):
             video_full_name = os.path.join(self._attachments_dir, video_name)
             thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
 
-            print('Downloading video:', url)
-            download_file_by_url(url, video_full_name, header=self._headers)
-            data['files'][video_name] = open(video_full_name, 'rb')
+            # If not a local file path, download it
+            if not os.path.exists(url):
+                print('Downloading video:', url)
+                download_file_by_url(url, video_full_name, header=self._headers)
+                data['files'][video_name] = open(video_full_name, 'rb')
+            else:
+                video_name = os.path.basename(url)
+                thumb_name = video_name.split('.')[-2] + '.jpg'
+                video_full_name = os.path.join(self._attachments_dir, video_name)
+                thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
 
             has_thumb, duration, width, height = extract_video_config(video_full_name, thumb_full_name)
             if has_thumb:
@@ -853,6 +880,7 @@ class NewsPostman(object):
 
         # Get display policy by "item" information
         data = self._display_policy(item, max_len=self._extractor.max_post_length)
+        data['files'] = {}
 
         # Do not post if the message is empty
         if not data['text']:
@@ -862,7 +890,14 @@ class NewsPostman(object):
         if self._DEBUG:
             data['text'] += '\nDEBUG #D' + str(news_id)
 
-        data['files'] = {}
+        if self._video_detect:
+            video_full_path = self._video_detect_policy(item['link'], data)
+            if video_full_path:
+                if 'videos' in item:
+                    item['videos'].append(video_full_path)
+                else:
+                    item['videos'] = [video_full_path]
+
         if ('images' in item and item['images']) or ('videos' in item and item['videos']):
             if len(item['images']) == 1 and len(item['videos']) == 0:
                 method = 'sendPhoto'
