@@ -312,20 +312,23 @@ class InfoExtractor(object):
 
             link_str = keep_link(real_paragraph, url, self._keep_media_link).strip()
 
+            if link_str == "":
+                continue
+
             # If there is only ONE [Media] link, it should be concerned as a word.
-            # This is the
-            if link_str != "" and not is_single_media(link_str):
+            if not is_single_media(link_str):
                 if blank_flag:
                     link_str = '\n\n' + link_str
                     blank_flag = False
                 paragraphs += link_str + '\n\n'
-            elif link_str != "":
+            else:
                 paragraphs += link_str + ' '
                 blank_flag = True
-        if paragraphs and paragraphs[-1] == ' ':
-            paragraphs += '\n\n'
-        # print(paragraphs)
 
+        if paragraphs and blank_flag:
+            paragraphs += '\n\n'
+
+        # print(paragraphs)
         return paragraphs
 
     def get_time_policy(self, text, item):
