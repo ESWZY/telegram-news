@@ -36,8 +36,8 @@ def default_policy(item, max_len=1000, max_par_num=15):
 
     if item['paragraphs']:
         if len(item['paragraphs']) > max_len or item['paragraphs'].count('\n') > max_par_num * 2:
-            # Leave a hint
             po += '<i>Too long to display.</i>\n\n'
+
             # If there is exceed the limit, enable web page preview.
             disable_web_page_preview = 'False'
         else:
@@ -99,6 +99,8 @@ def best_effort_display_policy(item, max_len=1000, max_par_num=15, suffix='...')
             length = len(full) - len(item['paragraphs'])
             ps = item['paragraphs'].split('\n\n')
             for p in ps:
+                if not p:
+                    continue
                 if length + len(p) > max_len:
                     po += suffix + '\n\n'
                     break
