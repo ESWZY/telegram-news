@@ -38,6 +38,7 @@ from ..utils import (
     xml_to_json,
     add_parameters_into_url,
     get_hash,
+    get_image_from_select,
     get_video_from_select,
     download_file_by_url,
     get_network_file,
@@ -248,8 +249,8 @@ class InfoExtractor(object):
 
             if self._outer_image_selector:
                 try:
-                    tags = soup2.select(self._outer_image_selector)
-                    item['images'] = [get_full_link(img.get('src'), listURL) for img in tags if get_full_link(img.get('src'), listURL)]
+                    tags_select = soup2.select(self._outer_image_selector)
+                    item['images'] = get_image_from_select(tags_select, listURL)
                 except IndexError:
                     item['images'] = []
             else:
@@ -258,7 +259,7 @@ class InfoExtractor(object):
             if self._outer_video_selector:
                 try:
                     tags_select = soup2.select(self._outer_video_selector)
-                    item['videos'] = get_video_from_select(tags_select, item['link'])
+                    item['videos'] = get_video_from_select(tags_select, listURL)
                 except IndexError:
                     item['videos'] = []
             else:
@@ -389,8 +390,7 @@ class InfoExtractor(object):
             return []
         soup = BeautifulSoup(text, 'lxml')
         tags_select = soup.select(self._image_selector)
-        images = [get_full_link(img.get('src'), item['link']) for img in tags_select if get_full_link(img.get('src'), item['link'])]
-        return images
+        return get_image_from_select(tags_select, item['link'])
 
     def get_video_policy(self, text, item):
         """

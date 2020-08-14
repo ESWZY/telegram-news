@@ -286,6 +286,21 @@ def get_hash(string):
     return hashlib.md5(string.encode('utf-8')).hexdigest()
 
 
+def get_image_from_select(tags_select, link):
+    images = []
+    for img in tags_select:
+        if img.get('src'):
+            images.append(get_full_link(img.get('src'), link))
+        elif img.get('data-src'):
+            images.append(get_full_link(img.get('data-src'), link))  # For lazy loading
+        elif img.find('source'):
+            if img.find('source').get('srcset'):
+                images.append(get_full_link(img.find('source').get('srcset'), link))
+            elif img.find('source').get('data-srcset'):
+                images.append(get_full_link(img.find('source').get('data-srcset'), link))  # For lazy loading
+    return images
+
+
 def get_video_from_select(tags_select, link):
     videos = []
     for vid in tags_select:
