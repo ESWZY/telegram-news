@@ -504,7 +504,8 @@ class InfoExtractorJSON(InfoExtractor):
             else:
                 item['id'] = self._id_policy(item['link'])
             item['title'] = self._get_item_by_route(i, self._title_router)
-            item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'], self._keep_media_link)
+            item['paragraphs'] = keep_link(self._get_item_by_route(i, self._paragraphs_router), item['link'],
+                                           self._keep_media_link)
             item['time'] = self._get_item_by_route(i, self._time_router)
             item['source'] = self._get_item_by_route(i, self._source_router)
             image_temp = self._get_item_by_route(i, self._image_router)
@@ -614,15 +615,17 @@ class NewsPostman(object):
     _auto_retry = False
     _download_and_send = False
     _video_detect = False
+    _video_detect_verbose = False
     _data_post_process = None
     _max_media_control = MAX_MEDIA_PER_MEDIAGROUP
     _attach_number = 0
-    _attachments_dir =  os.path.join(os.getcwd(), 'attachments')
+    _attachments_dir = os.path.join(os.getcwd(), 'attachments')
 
     # Cache the list webpage and check if modified
     _cache_list = os.urandom(10)
 
-    def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None, display_policy=best_effort_display_policy):
+    def __init__(self, listURLs, sendList, db, tag='', headers=None, proxies=None,
+                 display_policy=best_effort_display_policy):
         """Construct the class by setting key attributes."""
         self._DEBUG = False
         self._listURLs = listURLs
@@ -741,9 +744,10 @@ class NewsPostman(object):
             print('Attachments will be downloaded to', self._attachments_dir)
         self._download_and_send = enable
 
-    def enable_video_detect(self, enable=True):
+    def enable_video_detect(self, enable=True, verbose=False):
         if self._download_and_send:
             self._video_detect = enable
+            self._video_detect_verbose = verbose
         else:
             warnings.warn('Enable video detection failed! You must enable download_and_send first!', stacklevel=2)
             exit(1)
@@ -810,7 +814,12 @@ class NewsPostman(object):
         return data
 
     def _video_detect_policy(self, page_url, data):
-        video_name = detect_and_download_video(page_url, self._attachments_dir, get_hash(page_url))
+        video_name = detect_and_download_video(
+            url=page_url,
+            path=self._attachments_dir,
+            name=get_hash(page_url),
+            verbose=self._video_detect_verbose
+        )
         if video_name:
             data['videos'].append(f'attach://{video_name}')
             video_full_path = os.path.join(self._attachments_dir, video_name)
@@ -906,7 +915,8 @@ class NewsPostman(object):
             elif len(item['images']) == 0 and len(item['videos']) == 1:
                 method = 'sendVideo'
                 data['caption'] = data.pop('text')
-                data['video'], data['thumb'], data['duration'], data['width'], data['height'] = self._video_send_policy(item['videos'][0], data)
+                data['video'], data['thumb'], data['duration'], data['width'], data['height'] = \
+                    self._video_send_policy(item['videos'][0], data)
                 data['supports_streaming'] = True
             else:
                 method = 'sendMediaGroup'

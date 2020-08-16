@@ -352,7 +352,7 @@ def extract_video_config(video_full_name, thumb_full_name):
     return False, math.ceil(duration), int(width), int(height)
 
 
-def detect_and_download_video(url, path, name):
+def detect_and_download_video(url, path, name, verbose):
     """Detect and download video in page, return video name, by Youtube-DL."""
     try:
         import youtube_dl
@@ -360,8 +360,11 @@ def detect_and_download_video(url, path, name):
         print('You do not have youtube-dl, please install by yourself!')
         return None
 
-    # Specific file name, disable logs and warnings
-    ydl_opts = {'outtmpl': os.path.join(path, name) + '.%(ext)s', 'quiet': True, 'no_warnings': True}
+    # Specific file name, disable logs and warnings as default
+    ydl_opts = {'outtmpl': os.path.join(path, name) + '.%(ext)s'}
+    if verbose:
+        ydl_opts['quiet'] = True
+        ydl_opts['no_warnings'] = True
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         try:
             meta = ydl.extract_info(url, download=True)
