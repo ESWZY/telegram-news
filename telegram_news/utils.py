@@ -169,7 +169,7 @@ def keep_link(text, url, with_media_link=True):
             if content:
                 if link_url:
                     link_url = get_full_link(link_url, url)
-                    result += '<a href=\"' + link_url + '\">' + str(content) + '</a>'
+                    result += '<a href=\"' + link_url + '\">' + str(content).strip() + '</a>'
                 else:
                     str(content)
 
