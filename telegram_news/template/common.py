@@ -821,7 +821,11 @@ class NewsPostman(object):
             verbose=self._video_detect_verbose
         )
         if video_name:
-            data['videos'].append(f'attach://{video_name}')
+            if not data['videos']:
+                data['videos'] = [f'attach://{video_name}']
+            else:
+                data['videos'].append(f'attach://{video_name}')
+
             video_full_path = os.path.join(self._attachments_dir, video_name)
             data['files'][video_name] = open(video_full_path, 'rb')
             return video_full_path
