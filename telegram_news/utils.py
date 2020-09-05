@@ -342,29 +342,32 @@ def get_ext_from_url(url):
     return os.path.splitext(path)[1]
 
 
-def extract_video_config(video_full_name, thumb_full_name):
+def extract_video_config(video_full_name, thumb_full_name, thumb_name):
     """Get configs and thumbnail of the video, by OpenCV."""
     try:
         import cv2
     except ModuleNotFoundError:
         print('You do not have cv2 module, please install by yourself!')
-        return False, 0, 640, 360
+        return None, 0, 640, 360
 
     cam = cv2.VideoCapture(video_full_name)
-
-    duration = cam.get(cv2.CAP_PROP_FRAME_COUNT) / cam.get(cv2.CAP_PROP_FPS)
+    try:
+        # duration = frame count / frame per second
+        duration = cam.get(cv2.CAP_PROP_FRAME_COUNT) / cam.get(cv2.CAP_PROP_FPS)
+    except ZeroDivisionError:
+        duration = 0
     width = cam.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
     success, image = cam.read()
     if success:
         cv2.imwrite(thumb_full_name, image)
-        return True, math.ceil(duration), int(width), int(height)
-    return False, math.ceil(duration), int(width), int(height)
+        return thumb_name, math.ceil(duration), int(width), int(height)
+    return None, math.ceil(duration), int(width), int(height)
 
 
 def detect_and_download_video(url, path, name, verbose):
-    """Detect and download video in page, return video name, by Youtube-DL."""
+    """Detect and download videos in page, return video name, by Youtube-DL."""
     try:
         import youtube_dl
     except ModuleNotFoundError:
