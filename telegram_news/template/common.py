@@ -862,7 +862,7 @@ class NewsPostman(object):
             if not os.path.exists(url):
                 print('Downloading video:', url)
                 download_file_by_url(url, video_full_name, header=self._headers)
-                data['files'][video_name] = open(video_full_name, 'rb')
+                files_to_send[video_name] = open(video_full_name, 'rb')
             # If the file was downloaded:
             else:
                 video_name = os.path.basename(url)
