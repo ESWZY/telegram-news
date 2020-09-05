@@ -814,7 +814,7 @@ class NewsPostman(object):
         return data
 
     def _video_detect_policy(self, page_url, data):
-        """Detect and download videos in web page by detecting-and-download method, and add to sending list."""
+        """Detect and download videos in web page by detecting-and-download method."""
         video_name = detect_and_download_video(
             url=page_url,
             path=self._attachments_dir,
@@ -823,7 +823,7 @@ class NewsPostman(object):
         )
 
         if video_name:
-            if not data['videos']:
+            if 'videos' not in data or not data['videos']:
                 data['videos'] = [f'attach://{video_name}']
             else:
                 data['videos'].append(f'attach://{video_name}')
@@ -858,9 +858,17 @@ class NewsPostman(object):
             video_full_name = os.path.join(self._attachments_dir, video_name)
             thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
 
-            print('Downloading video: ', url)
-            download_file_by_url(url, video_full_name, header=self._headers)
-            files_to_send[video_name] = open(video_full_name, 'rb')
+            # If not a local file path, download it
+            if not os.path.exists(url):
+                print('Downloading video:', url)
+                download_file_by_url(url, video_full_name, header=self._headers)
+                data['files'][video_name] = open(video_full_name, 'rb')
+            # If the file was downloaded:
+            else:
+                video_name = os.path.basename(url)
+                thumb_name = video_name.split('.')[-2] + '.jpg'
+                video_full_name = os.path.join(self._attachments_dir, video_name)
+                thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
 
             extracted_thumb_name, duration, width, height = extract_video_config(video_full_name, thumb_full_name, thumb_name)
 
