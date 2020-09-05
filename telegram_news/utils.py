@@ -312,14 +312,25 @@ def get_video_from_select(tags_select, link):
     return videos
 
 
-def download_file_by_url(url, filename=None, header=None):
+def download_file_by_url(url, filename, header=None, max_retry=10):
     if not filename:
         filename = os.path.basename(urlparse(url).path)
     if os.path.exists(filename):
         return
-    r = requests.get(url, headers=header)
-    with open(filename, 'wb') as f:
-        f.write(r.content)
+
+    # Retry only when there is no network error
+    max_retry = max_retry
+    while max_retry:
+        try:
+            # Use requests.get to download target file, and write to a new file.
+            r = requests.get(url, headers=header)
+            with open(filename, 'wb') as f:
+                f.write(r.content)
+        except Exception as e:
+            print('Download file ' + url + ' failed (' + str(e) + ')! Retry ' + str(max_retry) + ' time(s).')
+            max_retry -= 1
+            continue
+        break
 
 
 def get_network_file(url):
