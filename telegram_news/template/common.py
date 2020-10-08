@@ -855,25 +855,25 @@ class NewsPostman(object):
 
             video_name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
             thumb_name = hashlib.md5(url.encode('utf-8')).hexdigest() + '.jpg'
-            video_full_name = os.path.join(self._attachments_dir, video_name)
-            thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
+            video_full_path = os.path.join(self._attachments_dir, video_name)
+            thumb_full_path = os.path.join(self._attachments_dir, thumb_name)
 
             # If not a local file path, download it
             if not os.path.exists(url):
                 print('Downloading video:', url)
-                download_file_by_url(url, video_full_name, header=self._headers)
-                files_to_send[video_name] = open(video_full_name, 'rb')
+                download_file_by_url(url, video_full_path, header=self._headers)
+                files_to_send[video_name] = open(video_full_path, 'rb')
             # If the file was downloaded:
             else:
                 video_name = os.path.basename(url)
                 thumb_name = video_name.split('.')[-2] + '.jpg'
-                video_full_name = os.path.join(self._attachments_dir, video_name)
-                thumb_full_name = os.path.join(self._attachments_dir, thumb_name)
+                video_full_path = os.path.join(self._attachments_dir, video_name)
+                thumb_full_path = os.path.join(self._attachments_dir, thumb_name)
 
-            extracted_thumb_name, duration, width, height = extract_video_config(video_full_name, thumb_full_name, thumb_name)
+            extracted_thumb_name, duration, width, height = extract_video_config(video_full_path, thumb_full_path, thumb_name)
 
             if extracted_thumb_name:
-                files_to_send[extracted_thumb_name] = open(thumb_full_name, 'rb')
+                files_to_send[extracted_thumb_name] = open(thumb_full_path, 'rb')
                 return f'attach://{video_name}', f'attach://{extracted_thumb_name}', duration, width, height, files_to_send
 
             return f'attach://{video_name}', '', duration, width, height, files_to_send
@@ -894,11 +894,11 @@ class NewsPostman(object):
                 os.mkdir(self._attachments_dir)
 
             photo_name = hashlib.md5(url.encode('utf-8')).hexdigest() + get_ext_from_url(url)
-            photo_full_name = os.path.join(self._attachments_dir, photo_name)
+            photo_full_path = os.path.join(self._attachments_dir, photo_name)
 
             print('Downloading photo:', url)
-            download_file_by_url(url, photo_full_name, header=self._headers)
-            files_to_send[photo_name] = open(photo_full_name, 'rb')
+            download_file_by_url(url, photo_full_path, header=self._headers)
+            files_to_send[photo_name] = open(photo_full_path, 'rb')
             return f'attach://{photo_name}', files_to_send
 
         return url, files_to_send

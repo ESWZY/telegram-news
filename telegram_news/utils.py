@@ -371,7 +371,7 @@ def save_compressed_image(image, image_full_path, size_upper_bound):
             cv2.imwrite(image_full_path, decimg)
 
 
-def extract_video_config(video_full_name, thumb_full_name, thumb_name):
+def extract_video_config(video_full_path, thumb_full_path, thumb_name):
     """Get configs and thumbnail of the video, by OpenCV."""
     try:
         import cv2
@@ -379,7 +379,7 @@ def extract_video_config(video_full_name, thumb_full_name, thumb_name):
         print('You do not have cv2 module, please install by yourself!')
         return None, 0, 640, 360
 
-    cam = cv2.VideoCapture(video_full_name)
+    cam = cv2.VideoCapture(video_full_path)
 
     if cam.get(cv2.CAP_PROP_FRAME_COUNT) == 0:
         print('Invalid video detected!')
