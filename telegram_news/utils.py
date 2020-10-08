@@ -345,6 +345,32 @@ def get_ext_from_url(url):
     return os.path.splitext(path)[1]
 
 
+def save_compressed_image(image, image_full_path, size_upper_bound):
+    """
+    Compress image files to `size_upper_bound`kb.
+    Need OpenCV, only (at least for now) be called by `extract_video_config`
+    :param image: binary image
+    :param image_full_path: path to save
+    :param size_upper_bound: max image size
+    """
+    try:
+        import cv2
+    except ModuleNotFoundError:
+        print('You do not have cv2 module, please install by yourself!')
+        return
+
+    cv2.imwrite(image_full_path, image)
+    begin_quality = 100
+    while os.path.getsize(image_full_path) > size_upper_bound * 1000:
+        print(size_upper_bound * 1000 / os.path.getsize(image_full_path))
+        begin_quality = begin_quality * (size_upper_bound * 1000 / os.path.getsize(image_full_path)) - 1
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), begin_quality]
+        result, encimg = cv2.imencode('.jpg', image, encode_param)
+        decimg = cv2.imdecode(encimg, 1)
+        if result:
+            cv2.imwrite(image_full_path, decimg)
+
+
 def extract_video_config(video_full_name, thumb_full_name, thumb_name):
     """Get configs and thumbnail of the video, by OpenCV."""
     try:
@@ -369,17 +395,8 @@ def extract_video_config(video_full_name, thumb_full_name, thumb_name):
 
     success, image = cam.read()
     if success:
-        cv2.imwrite(thumb_full_name, image)
         # DOC: "The thumbnail should be in JPEG format and less than 200 kB in size."
-        begin_quality = 100
-        while os.path.getsize(thumb_full_name) > MAX_THUMB_SIZE * 1000:
-            print(MAX_THUMB_SIZE * 1000 / os.path.getsize(thumb_full_name))
-            begin_quality = begin_quality * (MAX_THUMB_SIZE * 1000 / os.path.getsize(thumb_full_name)) - 1
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), begin_quality]
-            result, encimg = cv2.imencode('.jpg', image, encode_param)
-            decimg = cv2.imdecode(encimg, 1)
-            if result:
-                cv2.imwrite(thumb_full_name, decimg)
+        save_compressed_image(image, thumb_full_path, MAX_THUMB_SIZE)
 
         return thumb_name, math.ceil(duration), int(width), int(height)
     return None, math.ceil(duration), int(width), int(height)
