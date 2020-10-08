@@ -50,6 +50,9 @@ except Exception:
         urlopen
     )
 
+from .constant import (
+    MAX_THUMB_SIZE
+)
 
 def keep_media(text, url, with_link=True):
     """
@@ -351,6 +354,11 @@ def extract_video_config(video_full_name, thumb_full_name, thumb_name):
         return None, 0, 640, 360
 
     cam = cv2.VideoCapture(video_full_name)
+
+    if cam.get(cv2.CAP_PROP_FRAME_COUNT) == 0:
+        print('Invalid video detected!')
+        return None, 0, 640, 360
+
     try:
         # duration = frame count / frame per second
         duration = cam.get(cv2.CAP_PROP_FRAME_COUNT) / cam.get(cv2.CAP_PROP_FPS)
@@ -362,6 +370,17 @@ def extract_video_config(video_full_name, thumb_full_name, thumb_name):
     success, image = cam.read()
     if success:
         cv2.imwrite(thumb_full_name, image)
+        # DOC: "The thumbnail should be in JPEG format and less than 200 kB in size."
+        begin_quality = 100
+        while os.path.getsize(thumb_full_name) > MAX_THUMB_SIZE * 1000:
+            print(MAX_THUMB_SIZE * 1000 / os.path.getsize(thumb_full_name))
+            begin_quality = begin_quality * (MAX_THUMB_SIZE * 1000 / os.path.getsize(thumb_full_name)) - 1
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), begin_quality]
+            result, encimg = cv2.imencode('.jpg', image, encode_param)
+            decimg = cv2.imdecode(encimg, 1)
+            if result:
+                cv2.imwrite(thumb_full_name, decimg)
+
         return thumb_name, math.ceil(duration), int(width), int(height)
     return None, math.ceil(duration), int(width), int(height)
 
