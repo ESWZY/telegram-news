@@ -44,9 +44,11 @@ from ..utils import (
     get_network_file,
     get_ext_from_url,
     extract_video_config,
-    detect_and_download_video
+    detect_and_download_video,
+    save_compressed_video,
 )
 from ..constant import (
+    MAX_VIDEO_SIZE,
     MAX_MEDIA_PER_MEDIAGROUP,
 )
 
@@ -614,6 +616,7 @@ class NewsPostman(object):
     _disable_cache = False
     _auto_retry = False
     _download_and_send = False
+    _compress_video = False
     _video_detect = False
     _video_detect_verbose = False
     _data_post_process = None
@@ -752,6 +755,14 @@ class NewsPostman(object):
             warnings.warn('Enable video detection failed! You must enable download_and_send first!', stacklevel=2)
             exit(1)
 
+    def enable_video_compression(self, enable=True, verbose=False):
+        if self._download_and_send:
+            self._compress_video = enable
+            _ = verbose
+        else:
+            warnings.warn('Enable video compression failed! You must enable download_and_send first!', stacklevel=2)
+            exit(1)
+
     def set_data_post_process(self, data_post_process):
         self._data_post_process = data_post_process
 
@@ -829,7 +840,6 @@ class NewsPostman(object):
                 data['videos'].append(f'attach://{video_name}')
 
             video_full_path = os.path.join(self._attachments_dir, video_name)
-            data['files'][video_name] = open(video_full_path, 'rb')
             return video_full_path
 
         return None
@@ -862,7 +872,6 @@ class NewsPostman(object):
             if not os.path.exists(url):
                 print('Downloading video:', url)
                 download_file_by_url(url, video_full_path, header=self._headers)
-                files_to_send[video_name] = open(video_full_path, 'rb')
             # If the file was downloaded:
             else:
                 video_name = os.path.basename(url)
@@ -870,6 +879,13 @@ class NewsPostman(object):
                 video_full_path = os.path.join(self._attachments_dir, video_name)
                 thumb_full_path = os.path.join(self._attachments_dir, thumb_name)
 
+            if self._compress_video:
+                # Compress video, but use `video_name` as its name.
+                new_video_full_path = save_compressed_video(video_full_path, MAX_VIDEO_SIZE)
+                if new_video_full_path:
+                    video_full_path = new_video_full_path
+
+            files_to_send[video_name] = open(video_full_path, 'rb')
             extracted_thumb_name, duration, width, height = extract_video_config(video_full_path, thumb_full_path, thumb_name)
 
             if extracted_thumb_name:
