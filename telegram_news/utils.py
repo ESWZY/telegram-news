@@ -373,29 +373,29 @@ def save_compressed_image(image, image_full_path, size_upper_bound):
 
 def save_compressed_video(video_full_path, size_upper_bound, two_pass=True, filename_suffix='1'):
     """
-    Compress video to max-server-supported size.
+    Compress video file to max-supported size.
     :param video_full_path: the video you want to compress.
-    :param size_upper_bound: Max video size in KB.
+    :param size_upper_bound: Max video size in B.
     :param two_pass: Set to True to enable two-pass calculation.
     :param filename_suffix: Add a suffix for new video.
-    :return:
+    :return: out_put_name or error
     """
     if not os.path.exists(video_full_path):
         return False
-    if os.path.getsize(video_full_path) <= size_upper_bound * 1024:
+    if os.path.getsize(video_full_path) <= size_upper_bound:
         return video_full_path
 
     try:
         import ffmpeg
     except ModuleNotFoundError:
-        print('You do not have ffmpeg-python module, please install by yourself!')
+        print('You do not have ffmpeg-python module, please install it by yourself!')
         return False
 
     filename, extension = os.path.splitext(video_full_path)
     extension = '.mp4'
     output_file_name = filename + filename_suffix + extension
 
-    total_bitrate_lower_bound = 10000
+    total_bitrate_lower_bound = 11000
     min_audio_bitrate = 32000
     max_audio_bitrate = 256000
     min_video_bitrate = 100000
@@ -406,28 +406,27 @@ def save_compressed_video(video_full_path, size_upper_bound, two_pass=True, file
         # Video duration, in s.
         duration = float(probe['format']['duration'])
         # Audio bitrate, in bps.
-        audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+        audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), {'bit_rate': 0})['bit_rate'])
         # Target total bitrate, in bps.
-        target_total_bitrate = (size_upper_bound * 1024 * 8) / (1.073741824 * duration)
+        target_total_bitrate = (size_upper_bound * 8) / (1.073741824 * duration)
         if target_total_bitrate < total_bitrate_lower_bound:
             print('Bitrate is extremely low! Stop compress!')
             return False
 
-        # Best min size, in kB.
-        best_min_size = (min_audio_bitrate + min_video_bitrate) * (1.073741824 * duration) / (8 * 1024)
+        # Best min size, in B.
+        best_min_size = (min_audio_bitrate + min_video_bitrate) * (1.073741824 * duration) / 8
         if size_upper_bound < best_min_size:
-            print('Quality not good! Recommended minimum size:', '{:,}'.format(int(best_min_size)), 'KB.')
+            print('Quality not good! Recommended minimum size:', '{:,}'.format(int(best_min_size)), 'B.')
             # return False
 
         # Target audio bitrate, in bps.
         audio_bitrate = audio_bitrate
 
-        if target_total_bitrate < 11 * audio_bitrate:
-            audio_bitrate = target_total_bitrate / 11
-            if audio_bitrate < min_audio_bitrate:
+        # target audio bitrate, in bps
+        if 10 * audio_bitrate > target_total_bitrate:
+            audio_bitrate = target_total_bitrate / 10
+            if audio_bitrate < min_audio_bitrate < target_total_bitrate:
                 audio_bitrate = min_audio_bitrate
-                if audio_bitrate > target_total_bitrate:
-                    audio_bitrate = target_total_bitrate / 11
             elif audio_bitrate > max_audio_bitrate:
                 audio_bitrate = max_audio_bitrate
 
@@ -451,7 +450,7 @@ def save_compressed_video(video_full_path, size_upper_bound, two_pass=True, file
                           **{'c:v': 'libx264', 'b:v': video_bitrate, 'c:a': 'aac', 'b:a': audio_bitrate}
                           ).overwrite_output().run()
 
-        if os.path.getsize(output_file_name) <= size_upper_bound * 1024:
+        if os.path.getsize(output_file_name) <= size_upper_bound:
             return output_file_name
         elif os.path.getsize(output_file_name) < os.path.getsize(video_full_path):  # Do it again
             return save_compressed_video(output_file_name, size_upper_bound)

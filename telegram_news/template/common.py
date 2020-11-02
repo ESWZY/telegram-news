@@ -884,6 +884,8 @@ class NewsPostman(object):
                 new_video_full_path = save_compressed_video(video_full_path, MAX_VIDEO_SIZE)
                 if new_video_full_path:
                     video_full_path = new_video_full_path
+                else:   # Compress video failed, discard it.
+                    return None, '', 0, 0, 0, files_to_send
 
             files_to_send[video_name] = open(video_full_path, 'rb')
             extracted_thumb_name, duration, width, height = extract_video_config(video_full_path, thumb_full_path, thumb_name)
