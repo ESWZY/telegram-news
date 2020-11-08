@@ -327,6 +327,9 @@ def download_file_by_url(url, filename, header=None, max_retry=10):
         try:
             # Use requests.get to download target file, and write to a new file.
             r = requests.get(url, headers=header)
+            if r.status_code != 200:
+                print('File not found!', url)
+                return
             with open(filename, 'wb') as f:
                 f.write(r.content)
         except Exception as e:
