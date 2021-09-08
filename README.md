@@ -51,9 +51,9 @@ You also need a SQL database. Any SQL database is OK. Especially, I recommend [P
 
 ## Quick deploy on Heroku
 
-Click 👇 button to deploy an example for free. Python environment and database are prepared.
+Click 👇 button to deploy an example for free. Python environment and PostgreSQL database have been prepared.
 
-<a href="https://heroku.com/deploy?template=https://github.com/ESWZY/telegram-news-deploy">
+<a href="https://heroku.com/deploy?template=https://github.com/ESWZY/telegram-news-getting-started">
   <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy">
 </a>
 
@@ -231,7 +231,7 @@ If you use the same database and send to the same channel, you can simply joint 
 
 An example you can find in our Heroku deploy template repo: 
 
-https://github.com/ESWZY/telegram-news-deploy/blob/master/main.py
+https://github.com/ESWZY/telegram-news-getting-started/blob/master/main.py
 
 ## Example Channel
 
