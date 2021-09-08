@@ -45,11 +45,23 @@ $ python setup.py install
 
 It does not need much so that you can run your code anywhere.
 
-First, I assume you have a [Telegram account](https://web.telegram.org/#/login). Then, ask [@BotFather](https://t.me/botfather) for a bot and bot token. After that, create a public [channel](https://telegram.org/tour/channels) or [group](https://telegram.org/tour/groups), and remember chat id you just named. Do not forget to invate your bot into your channel or group.
+First, ask [@BotFather](https://t.me/botfather) for a bot and bot token. After that, create a public [channel](https://telegram.org/tour/channels) or [group](https://telegram.org/tour/groups), and remember chat id you just named. Do not forget to invite your bot into your channel or group and make it an admin.
 
 You also need a SQL database. Any SQL database is OK. Especially, I recommend [PostgreSQL](https://www.postgresql.org/).
 
+## Quick deploy on Heroku
+
+Click 👇 button to deploy an example for free. Python environment and database are prepared.
+
+<a href="https://heroku.com/deploy?template=https://github.com/ESWZY/telegram-news-deploy">
+  <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy">
+</a>
+
+After deployment, start the worker in "Resources" tab, and then you can see the effect in your channel/group, which contains both SCMP news and Wiki news at same time.
+
 ## Usage
+
+Those are 3 examples for you to understand how to use the framework.
 
 ### Basic Example
 
@@ -61,9 +73,9 @@ from sqlalchemy.orm import Session
 from telegram_news.template import InfoExtractor, NewsPostman
 
 # Three required fields:
-# Your bot token gotten from @BotFather
+# Your bot token obtained from @BotFather
 bot_token = os.getenv("TOKEN")
-# Add your bots into a channel as administrators
+# Add your bots into a channel as an administrator
 channel = os.getenv("CHANNEL")
 # Your database to store old messages.
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -100,7 +112,7 @@ np.set_table_name(table_name)
 np.poll()
 ```
 
-Typical example:
+Typical results:
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo1.png" alt="Demo 1" width="40%">
@@ -147,7 +159,7 @@ np_2.set_table_name(table_name_2)
 np_2.poll()
 ```
 
-Typical example:
+Typical results:
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo3.png" alt="Demo 3" width="40%">
@@ -206,7 +218,7 @@ np_3.set_table_name(table_name_3)
 np_3.poll()
 ```
 
-Typical example:
+Typical results:
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/ESWZY/telegram-news/master/docs/images/demo5.png" alt="Demo 5" width="40%">
@@ -217,13 +229,13 @@ Typical example:
 
 If you use the same database and send to the same channel, you can simply joint each part of code block, and call `poll()` function simultaneously.
 
-An example was uploaded to Gist: 
+An example you can find in our Heroku deploy template repo: 
 
-https://gist.github.com/ESWZY/c08b719301cbf04d26188f66185fe598
+https://github.com/ESWZY/telegram-news-deploy/blob/master/main.py
 
 ## Example Channel
 
-A Telegram channel of [basic example](https://github.com/ESWZY/telegram-news#basic-example) for English Wikinews: [@wikinews_en](https://t.me/s/wikinews_en) (in English)
+A Telegram channel of [basic example](https://github.com/ESWZY/telegram-news#basic-example) for English Wikinews: [~~@wikinews_en~~](https://t.me/joinchat/T7TbJUWpgUpGmarY) (in English)
 
 A Telegram channel for realtime earthquake warning powered by Telegram-news: [@earthquake_alert](https://t.me/s/earthquake_alert) (in Chinese)
 
