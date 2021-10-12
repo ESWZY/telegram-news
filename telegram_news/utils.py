@@ -134,8 +134,7 @@ def keep_link(text, url, with_media_link=True):
         return ""
 
     text = text.replace('<br>', '\n')
-    text = text.replace('<br/>', '\n')
-    text = text.replace('<br[/s]*?/>', '\n')
+    text = re.sub('<br[\s]*?/>', '\n', text)
 
     # Ignore HTML comment
     text = re.sub(r'<!--[\s\S]*?-->', '', text)
@@ -253,6 +252,7 @@ def xml_to_json(xml_str):
     :param xml_str: XML format string.
     :return: JSON format string.
     """
+    xml_str = re.sub(r'<\?[\s\S]*?\?>', '', xml_str)
     xml_parse = xmltodict.parse(xml_str)
     json_str = json.dumps(xml_parse)
     return json_str
