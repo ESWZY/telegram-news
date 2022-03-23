@@ -59,6 +59,8 @@ Click 👇 button to deploy an example for free. Python environment and PostgreS
 
 After deployment, start the worker in "Resources" tab, and then you can see the effect in your channel/group, which contains both SCMP news and Wiki news at same time.
 
+Also, you can have a look at the quick deployment source code of this project in [ESWZY/telegram-news-getting-started](https://github.com/ESWZY/telegram-news-getting-started).
+
 ## Usage
 
 Those are 3 examples for you to understand how to use the framework.
