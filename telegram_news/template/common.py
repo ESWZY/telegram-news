@@ -616,6 +616,7 @@ class NewsPostman(object):
     _disable_cache = False
     _auto_retry = False
     _download_and_send = False
+    _mute_download_warnings = False
     _compress_video = False
     _video_detect = False
     _video_detect_verbose = False
@@ -746,6 +747,9 @@ class NewsPostman(object):
         if enable:
             print('Attachments will be downloaded to', self._attachments_dir)
         self._download_and_send = enable
+
+    def mute_download_warnings(self, enable=True):
+        self._mute_download_warnings = enable
 
     def enable_video_detect(self, enable=True, verbose=False):
         if self._download_and_send:
@@ -886,13 +890,19 @@ class NewsPostman(object):
                     video_full_path = new_video_full_path
                 else:   # Compress video failed, discard it.
                     return None, '', 0, 0, 0, files_to_send
+            try:
+                files_to_send[video_name] = open(video_full_path, 'rb')
+                extracted_thumb_name, duration, width, height = extract_video_config(video_full_path, thumb_full_path, thumb_name)
 
-            files_to_send[video_name] = open(video_full_path, 'rb')
-            extracted_thumb_name, duration, width, height = extract_video_config(video_full_path, thumb_full_path, thumb_name)
-
-            if extracted_thumb_name:
-                files_to_send[extracted_thumb_name] = open(thumb_full_path, 'rb')
-                return f'attach://{video_name}', f'attach://{extracted_thumb_name}', duration, width, height, files_to_send
+                if extracted_thumb_name:
+                    files_to_send[extracted_thumb_name] = open(thumb_full_path, 'rb')
+                    return f'attach://{video_name}', f'attach://{extracted_thumb_name}', duration, width, height, files_to_send
+            except FileNotFoundError as e:
+                print('Video file not found:', video_full_path)
+                if self._mute_download_warnings:
+                    return None, '', 0, 0, 0, files_to_send
+                else:
+                    raise e
 
             return f'attach://{video_name}', '', duration, width, height, files_to_send
 
@@ -916,7 +926,14 @@ class NewsPostman(object):
 
             print('Downloading photo:', url)
             download_file_by_url(url, photo_full_path, header=self._headers)
-            files_to_send[photo_name] = open(photo_full_path, 'rb')
+            try:
+                files_to_send[photo_name] = open(photo_full_path, 'rb')
+            except FileNotFoundError as e:
+                print('Download failed:', url)
+                if self._mute_download_warnings:
+                    return None, files_to_send
+                else:
+                    raise e
             return f'attach://{photo_name}', files_to_send
 
         return url, files_to_send
@@ -960,20 +977,29 @@ class NewsPostman(object):
                 data['media'] = []
                 for image in item['images']:
                     photo, files_to_send = self._photo_send_policy(image)
-                    data['files'].update(files_to_send)
-                    data['media'].append({'type': 'photo', 'media': photo})
+
+                    if photo:
+                        data['files'].update(files_to_send)
+                        data['media'].append({'type': 'photo', 'media': photo})
                 for video in item['videos']:
                     media, thumb, duration, width, height, files_to_send = self._video_send_policy(video)
-                    data['files'].update(files_to_send)
-                    data['media'].append({
-                        'type': 'video',
-                        'media': media,
-                        'thumb': thumb,
-                        'supports_streaming': True,
-                        'width': width,
-                        'height': height,
-                        'duration': duration
-                    })
+
+                    if media:
+                        data['files'].update(files_to_send)
+                        data['media'].append({
+                            'type': 'video',
+                            'media': media,
+                            'thumb': thumb,
+                            'supports_streaming': True,
+                            'width': width,
+                            'height': height,
+                            'duration': duration
+                        })
+
+                # Degrade to sendMessage
+                if len(data['media']) == 0:
+                    return data, 'sendMessage'
+
                 data['media'][0]['caption'] = data.pop('text')
                 data['media'][0]['parse_mode'] = data.pop('parse_mode')
 
@@ -1170,6 +1196,13 @@ class NewsPostman(object):
                     print('\033[31merror in', self._tag)
                     print('Unknown error!!', e)
                     traceback.print_exc()
+                    print('\033[0m')
+                    # Clear cache when any error
+                    self._cache_list = os.urandom(10)
+                    self._extractor._cached_list_items = os.urandom(10)
+                except FileNotFoundError as e:
+                    print('\033[31mfile not found in', self._tag)
+                    print(e)
                     print('\033[0m')
                     # Clear cache when any error
                     self._cache_list = os.urandom(10)
