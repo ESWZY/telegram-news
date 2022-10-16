@@ -367,7 +367,7 @@ def save_compressed_image(image, image_full_path, size_upper_bound):
     while os.path.getsize(image_full_path) > size_upper_bound * 1000:
         print(size_upper_bound * 1000 / os.path.getsize(image_full_path))
         begin_quality = begin_quality * (size_upper_bound * 1000 / os.path.getsize(image_full_path)) - 1
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), begin_quality]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), int(begin_quality)]
         result, encimg = cv2.imencode('.jpg', image, encode_param)
         decimg = cv2.imdecode(encimg, 1)
         if result:
