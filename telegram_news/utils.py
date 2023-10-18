@@ -500,9 +500,9 @@ def extract_video_config(video_full_path, thumb_full_path, thumb_name):
 def detect_and_download_video(url, path, name, verbose):
     """Detect and download videos in page, return video name, by Youtube-DL."""
     try:
-        import youtube_dl
+        import yt_dlp as youtube_dl
     except ModuleNotFoundError:
-        print('You do not have youtube-dl, please install by yourself!')
+        print('You do not have yt-dlp, please install by yourself!')
         return None
 
     # Specific file name, disable logs and warnings as default
